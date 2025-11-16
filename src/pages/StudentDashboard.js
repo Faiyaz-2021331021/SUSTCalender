@@ -1,124 +1,87 @@
 import React, { useState, useEffect } from "react";
+import Calendar from "react-calendar";
+import 'react-calendar/dist/Calendar.css';
 import { collection, onSnapshot } from "firebase/firestore";
-import "./StudentDashboard.css"; // create a simple CSS file
+import "./StudentDashboard.css";
 
 export default function StudentDashboard({ db }) {
-    const [showProfile, setShowProfile] = useState(false);
-    const [page, setPage] = useState("dashboard"); // 'dashboard', 'view', 'register', 'calendar', 'events'
     const [events, setEvents] = useState([]);
-    const [loadingEvents, setLoadingEvents] = useState(true);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [popupEvents, setPopupEvents] = useState([]);
+    const [showPopup, setShowPopup] = useState(false);
 
-    // Mock student info (later fetch from Firebase Auth / Firestore)
-    const student = {
-        name: "John Doe",
-        email: "john@example.com",
-        courses: ["CSE101 - Intro to Programming", "CSE202 - Data Structures"],
-    };
-
-    // Fetch events visible to students
+    // Fetch events from Firestore
     useEffect(() => {
         if (!db) return;
 
-        setLoadingEvents(true);
-        const unsubscribe = onSnapshot(
-            collection(db, "events"),
-            (snapshot) => {
-                const allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Only events for student or both
-                const studentEvents = allEvents.filter(ev => ev.targetAudience === "student" || ev.targetAudience === "both");
-                // Sort by createdAt
-                studentEvents.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate());
-                setEvents(studentEvents);
-                setLoadingEvents(false);
-            },
-            (err) => {
-                console.error("Error fetching events:", err);
-                setLoadingEvents(false);
-            }
-        );
+        const unsubscribe = onSnapshot(collection(db, "events"), snapshot => {
+            const allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const studentEvents = allEvents.filter(ev => ev.targetAudience === "student" || ev.targetAudience === "both");
+            setEvents(studentEvents);
+        });
 
         return () => unsubscribe();
     }, [db]);
 
-    const renderPage = () => {
-        switch (page) {
-            case "view":
-                return (
-                    <div>
-                        <h3>Registered Courses</h3>
-                        <ul>
-                            {student.courses.map((course, i) => <li key={i}>{course}</li>)}
-                        </ul>
-                    </div>
-                );
-
-            case "register":
-                return <p>Register for new courses (Coming soon)</p>;
-
-            case "calendar":
-                return <p>View calendar (Coming soon)</p>;
-
-            case "events":
-                return (
-                    <div>
-                        <h3>Events for You</h3>
-                        {loadingEvents ? (
-                            <p>Loading events...</p>
-                        ) : events.length === 0 ? (
-                            <p>No events available</p>
-                        ) : (
-                            <ul>
-                                {events.map(ev => (
-                                    <li key={ev.id}>
-                                        <strong>{ev.name}</strong> - {ev.date} at {ev.time} | For: {ev.targetAudience}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                );
-
-            case "dashboard":
-            default:
-                return (
-                    <div>
-                        <h1>Welcome, {student.name.split(" ")[0]}!</h1>
-                        <p>This is your personal student dashboard.</p>
-                    </div>
-                );
+    // Determine class for each day
+    const tileClassName = ({ date, view }) => {
+        if (view === 'month') {
+            const formattedDate = date.toISOString().split('T')[0];
+            const hasEvent = events.some(ev => ev.date === formattedDate);
+            return hasEvent ? 'event-day' : null;
         }
     };
 
-    return (
-        <div className="dashboard-container">
-            <header className="dashboard-header">
-                <h2>🎓 Student Dashboard</h2>
-                <button className="profile-btn" onClick={() => setShowProfile(!showProfile)}>
-                    Profile ⬇️
-                </button>
-                {showProfile && (
-                    <div className="profile-dropdown">
-                        <h3>{student.name}</h3>
-                        <p>{student.email}</p>
-                        <h4>Registered Courses:</h4>
-                        <ul>
-                            {student.courses.map((course, i) => <li key={i}>{course}</li>)}
-                        </ul>
-                    </div>
-                )}
-            </header>
+    // Show event names on the day
+    const tileContent = ({ date, view }) => {
+        if (view === 'month') {
+            const formattedDate = date.toISOString().split('T')[0];
+            const dayEvents = events.filter(ev => ev.date === formattedDate);
+            if (dayEvents.length > 0) {
+                return (
+                    <ul className="calendar-event-names">
+                        {dayEvents.map(ev => (
+                            <li key={ev.id}>{ev.name}</li>
+                        ))}
+                    </ul>
+                );
+            }
+        }
+        return null;
+    };
 
-            <main className="dashboard-main">
-                <div className="student-nav">
-                    <button onClick={() => setPage("dashboard")}>Dashboard Home</button>
-                    <button onClick={() => setPage("view")}>View Courses</button>
-                    <button onClick={() => setPage("register")}>Register Course</button>
-                    <button onClick={() => setPage("calendar")}>View Calendar</button>
-                    <button onClick={() => setPage("events")}>View Events</button>
+    // Handle click on a day
+    const handleDayClick = (date) => {
+        const formattedDate = date.toISOString().split('T')[0];
+        const dayEvents = events.filter(ev => ev.date === formattedDate);
+        setPopupEvents(dayEvents);
+        setShowPopup(dayEvents.length > 0);
+    };
+
+    return (
+        <div className="calendar-container">
+            <h2>Student Calendar</h2>
+            <Calendar
+                value={selectedDate}
+                onChange={setSelectedDate}
+                onClickDay={handleDayClick}
+                tileClassName={tileClassName}
+                tileContent={tileContent}
+            />
+
+            {showPopup && (
+                <div className="popup">
+                    <button className="close-btn" onClick={() => setShowPopup(false)}>×</button>
+                    <h3>Events on {popupEvents[0]?.date}</h3>
+                    <ul>
+                        {popupEvents.map(ev => (
+                            <li key={ev.id}>
+                                <strong>{ev.name}</strong> at {ev.time} | For: {ev.targetAudience}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
-                <hr />
-                {renderPage()}
-            </main>
+            )}
         </div>
     );
 }
