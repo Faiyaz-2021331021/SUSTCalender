@@ -1,0 +1,6 @@
+# pack-refs with: peeled fully-peeled sorted 
+561f4caa26bed122a2e3369cfb39a279f0ebc110 refs/heads/calender-feature
+bdc60b3c53a5e6b1d00dd11b77ce218490622f3e refs/heads/debdipu
+21dd960689cd357d8f21d9c1c1945dc9be4a29ba refs/heads/main
+bdc60b3c53a5e6b1d00dd11b77ce218490622f3e refs/pull/1/head
+561f4caa26bed122a2e3369cfb39a279f0ebc110 refs/pull/2/head
