@@ -14,7 +14,7 @@ export default function RoleSelection() {
             <div className="overlay">
                 <h1 className="title">🎓 University Calendar Portal</h1>
                 <p className="subtitle">
-                    Manage courses, events, and academic schedules — all in one place.
+                    Manage courses, events, and academic schedules - all in one place.
                 </p>
 
                 <div className="button-group">

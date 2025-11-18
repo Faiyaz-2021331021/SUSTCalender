@@ -1,20 +1,33 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     collection,
     addDoc,
     Timestamp,
     onSnapshot
 } from "firebase/firestore";
+import backgroundImage from "../../sust-saheed-minar.jpg";
 
 import "./AdminDashboard.css";
 
 
 export default function AdminDashboard({ db }) {
     const [page, setPage] = useState("main");
+    const navigate = useNavigate();
+    const backgroundStyle = {
+        backgroundImage: `linear-gradient(120deg, rgba(7, 17, 40, 0.85), rgba(3, 8, 20, 0.75)), url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed"
+    };
 
     return (
-        <div className="dashboard-container">
-            <header className="dashboard-header"><h2>👑 Admin Dashboard</h2></header>
+        <div className="dashboard-container" style={backgroundStyle}>
+            <header className="dashboard-header">
+                <h2>Admin Dashboard</h2>
+                <button className="home-link" onClick={() => navigate("/")}>Home</button>
+            </header>
 
             <nav className="dashboard-nav">
                 <button className="btn" onClick={() => setPage("main")}>Home</button>
@@ -83,7 +96,7 @@ function CreateEvent({ db }) {
 
     return (
         <div className="event-step">
-            <button className="btn btn-secondary" onClick={() => setStep(1)}>← Back</button>
+            <button className="btn btn-secondary" onClick={() => setStep(1)}>&lt; Back</button>
             <h3>Create Event (For: {eventType})</h3>
 
             <form onSubmit={handleSubmit} className="event-form">
