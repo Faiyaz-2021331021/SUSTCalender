@@ -1,0 +1,179 @@
+.dashboard-container {
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.profile-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.profile-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: 60px;
+    right: 40px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 20px;
+    border-radius: 12px;
+    width: 250px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    text-align: left;
+    animation: fadeIn 0.3s ease;
+}
+
+.profile-dropdown h3 {
+    margin: 0 0 5px;
+}
+
+.profile-dropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0 0;
+}
+
+.dashboard-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 20px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.calendar-container {
+    width: 100%;
+    max-width: 900px; /* bigger calendar */
+    margin: 20px auto;
+    font-size: 1.2rem;
+}
+
+.react-calendar {
+    width: 100% !important;
+    max-width: 900px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.react-calendar__tile {
+    height: 80px !important; /* taller day cells */
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.event-day {
+    background-color: #4caf50 !important;
+    color: white !important;
+    border-radius: 6px;
+    width: 90%;
+    padding: 3px 0;
+    margin-top: 2px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.calendar-event-names {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.75rem;
+    color: yellow;
+}
+
+.event-marker {
+    background-color: #4caf50;
+    color: white;
+    font-size: 0.7rem;
+    text-align: center;
+    border-radius: 4px;
+    padding: 2px;
+    margin-top: 2px;
+}
+
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 350px;
+    max-width: 90%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    z-index: 1000;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    color: #333;
+}
+
+.popup ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.close-btn {
+    float: right;
+    font-size: 1.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.student-nav {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.student-nav button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+    font-weight: 500;
+}
+
+.student-nav button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
