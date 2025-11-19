@@ -1,22 +1,25 @@
 .login-container {
     height: 100vh;
     width: 100%;
-    background: linear-gradient(135deg, #4e54c8, #8f94fb);
+    background: linear-gradient(130deg, rgba(15, 27, 56, 0.55), rgba(11, 20, 42, 0.4)), url("../sust-saheed-minar.jpg") no-repeat center center / cover;
+    background-attachment: fixed;
     display: flex;
     justify-content: center;
     align-items: center;
     font-family: 'Poppins', sans-serif;
+    padding: 20px;
 }
 
 .login-box {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
+    border-radius: 26px;
     padding: 40px 60px;
     text-align: center;
     color: white;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(15px);
+    box-shadow: 0 25px 40px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(18px);
     animation: fadeIn 1.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .login-title {
