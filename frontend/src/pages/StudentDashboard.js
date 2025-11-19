@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
-import 'react-calendar/dist/Calendar.css';
+import "react-calendar/dist/Calendar.css";
 import { collection, onSnapshot } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import backgroundImage from "../sust-saheed-minar.jpg";
 import "./StudentDashboard.css";
 
 export default function StudentDashboard({ db }) {
@@ -9,8 +11,16 @@ export default function StudentDashboard({ db }) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [popupEvents, setPopupEvents] = useState([]);
     const [showPopup, setShowPopup] = useState(false);
+    const navigate = useNavigate();
 
-    // Fetch events from Firestore
+    const backgroundStyle = {
+        backgroundImage: `linear-gradient(120deg, rgba(9, 20, 50, 0.85), rgba(4, 10, 25, 0.7)), url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed"
+    };
+
     useEffect(() => {
         if (!db) return;
 
@@ -23,19 +33,17 @@ export default function StudentDashboard({ db }) {
         return () => unsubscribe();
     }, [db]);
 
-    // Determine class for each day
     const tileClassName = ({ date, view }) => {
-        if (view === 'month') {
-            const formattedDate = date.toISOString().split('T')[0];
-            const hasEvent = events.some(ev => ev.date === formattedDate);
-            return hasEvent ? 'event-day' : null;
+        if (view === "month") {
+            const formattedDate = date.toISOString().split("T")[0];
+            return events.some(ev => ev.date === formattedDate) ? "event-day" : null;
         }
+        return null;
     };
 
-    // Show event names on the day
     const tileContent = ({ date, view }) => {
-        if (view === 'month') {
-            const formattedDate = date.toISOString().split('T')[0];
+        if (view === "month") {
+            const formattedDate = date.toISOString().split("T")[0];
             const dayEvents = events.filter(ev => ev.date === formattedDate);
             if (dayEvents.length > 0) {
                 return (
@@ -50,38 +58,40 @@ export default function StudentDashboard({ db }) {
         return null;
     };
 
-    // Handle click on a day
     const handleDayClick = (date) => {
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = date.toISOString().split("T")[0];
         const dayEvents = events.filter(ev => ev.date === formattedDate);
         setPopupEvents(dayEvents);
         setShowPopup(dayEvents.length > 0);
     };
 
     return (
-        <div className="calendar-container">
-            <h2>Student Calendar</h2>
-            <Calendar
-                value={selectedDate}
-                onChange={setSelectedDate}
-                onClickDay={handleDayClick}
-                tileClassName={tileClassName}
-                tileContent={tileContent}
-            />
+        <div className="student-dashboard" style={backgroundStyle}>
+            <div className="calendar-container">
+                <button className="student-home-btn" onClick={() => navigate("/")}>🏠 Home</button>
+                <h2>Student Calendar</h2>
+                <Calendar
+                    value={selectedDate}
+                    onChange={setSelectedDate}
+                    onClickDay={handleDayClick}
+                    tileClassName={tileClassName}
+                    tileContent={tileContent}
+                />
 
-            {showPopup && (
-                <div className="popup">
-                    <button className="close-btn" onClick={() => setShowPopup(false)}>×</button>
-                    <h3>Events on {popupEvents[0]?.date}</h3>
-                    <ul>
-                        {popupEvents.map(ev => (
-                            <li key={ev.id}>
-                                <strong>{ev.name}</strong> at {ev.time} | For: {ev.targetAudience}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+                {showPopup && (
+                    <div className="popup">
+                        <button className="close-btn" onClick={() => setShowPopup(false)}>x</button>
+                        <h3>Events on {popupEvents[0]?.date}</h3>
+                        <ul>
+                            {popupEvents.map(ev => (
+                                <li key={ev.id}>
+                                    <strong>{ev.name}</strong> at {ev.time} | For: {ev.targetAudience}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

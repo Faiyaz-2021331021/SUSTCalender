@@ -1,12 +1,4 @@
 .dashboard-container {
-    height: 100vh;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    font-family: 'Poppins', sans-serif;
-    display: flex;
-    flex-direction: column;
-}
-.dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -76,6 +68,42 @@
     max-width: 900px; /* bigger calendar */
     margin: 20px auto;
     font-size: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(5, 13, 32, 0.7);
+    padding: 30px;
+    border-radius: 24px;
+    color: #fff;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+}
+
+.student-dashboard {
+    min-height: 100vh;
+    font-family: 'Poppins', sans-serif;
+    background-attachment: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+}
+
+.student-home-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s ease;
+}
+
+.student-home-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .react-calendar {
