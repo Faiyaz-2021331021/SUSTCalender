@@ -15,7 +15,7 @@ export default function AdminDashboard({ db }) {
     const [page, setPage] = useState("main");
     const navigate = useNavigate();
     const backgroundStyle = {
-        backgroundImage: `linear-gradient(120deg, rgba(7, 17, 40, 0.85), rgba(3, 8, 20, 0.75)), url(${backgroundImage})`,
+        backgroundImage: `linear-gradient(120deg, rgba(7, 17, 40, 0.45), rgba(3, 8, 20, 0.35)), url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
