@@ -1,0 +1,35 @@
+.student-dash-container {
+    text-align: center;
+    padding: 40px 20px;
+    color: white;
+}
+
+.dash-title {
+    font-size: 2.2rem;
+    margin-bottom: 30px;
+    font-weight: bold;
+}
+
+.dash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    max-width: 900px;
+    margin: auto;
+}
+
+.dash-card {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 30px;
+    border-radius: 15px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    backdrop-filter: blur(10px);
+}
+
+.dash-card:hover {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.35);
+}
