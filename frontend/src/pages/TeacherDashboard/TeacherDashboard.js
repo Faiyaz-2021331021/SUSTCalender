@@ -37,10 +37,10 @@ export default function TeacherDashboard() {
     if (!loading && currentUser) {
       const userRef = doc(db, "users", currentUser.uid);
       getDoc(userRef)
-          .then(docSnap => {
-            setRole(docSnap.exists() ? docSnap.data().role : null);
-          })
-          .finally(() => setRoleLoaded(true));
+        .then(docSnap => {
+          setRole(docSnap.exists() ? docSnap.data().role : null);
+        })
+        .finally(() => setRoleLoaded(true));
     } else if (!loading && !currentUser) {
       setRoleLoaded(true);
     }
@@ -60,13 +60,15 @@ export default function TeacherDashboard() {
     if (!currentUser) return;
 
     const q = query(
-        collection(db, "courses"),
-        where("createdBy", "==", currentUser.uid)
+      collection(db, "courses"),
+      where("createdBy", "==", currentUser.uid)
+      // You can add orderBy("createdAt", "desc") if all courses have createdAt
     );
 
     const unsub = onSnapshot(q, snap => {
       const list = snap.docs.map(d => {
         const data = d.data();
+        // Fill missing createdAt with current timestamp (optional)
         return { id: d.id, ...data, createdAt: data.createdAt || serverTimestamp() };
       });
       setCourses(list);
@@ -80,10 +82,11 @@ export default function TeacherDashboard() {
     if (!currentUser) return;
 
     const q = query(collection(db, "events"));
+
     const unsub = onSnapshot(q, snap => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const filtered = list.filter(ev =>
-          ev.createdBy === currentUser.uid || ["teacher", "both"].includes(ev.targetAudience)
+        ev.createdBy === currentUser.uid || ["teacher", "both"].includes(ev.targetAudience)
       );
       setEvents(filtered.sort((a, b) => (a.date || "").localeCompare(b.date || "")));
     });
@@ -97,142 +100,127 @@ export default function TeacherDashboard() {
     setSelectedDayEvents(events.filter(ev => ev.date === formatted));
   }, [selectedDate, events]);
 
-  // Calendar tile class for coloring events
   const tileClassName = ({ date, view }) => {
     if (view === "month") {
       const formatted = date.toISOString().split("T")[0];
-      const dayEvents = events.filter(ev => ev.date === formatted);
-
-      if (dayEvents.length === 0) return null;
-
-      // Priority: teacher's own event first, then admin
-      if (dayEvents.some(ev => ev.createdBy === currentUser.uid)) {
-        return "teacher-event";
-      }
-
-      if (dayEvents.some(ev => ev.createdBy !== currentUser.uid)) {
-        return "admin-event";
-      }
-
-      return null;
+      return events.some(ev => ev.date === formatted) ? "event-day" : null;
     }
     return null;
   };
 
-  if (loading || !roleLoaded) return <div>Loading...</div>;
+  if (loading || !roleLoaded) {
+    return <div>Loading...</div>;
+  }
 
   return (
-      <div className="teacher-dashboard">
-        <div className="teacher-container">
-          <div className="teacher-header">
-            <div>
-              <h2 className="teacher-title">Teacher Dashboard</h2>
-              <div style={{ color: "#475569", fontSize: 14 }}>
-                Welcome, {currentUser?.email || "Teacher"}
-              </div>
-            </div>
-            <div className="teacher-actions">
-              <button className="btn" onClick={() => setShowCreateCourse(true)}>+ Create Course</button>
-              <button className="btn" onClick={() => { setShowCreateEvent(true); setSelectedCourseForEvent(null); }}>+ Create Event</button>
-              <button className="btn btn-secondary" onClick={() => navigate("/")}>Home</button>
+    <div className="teacher-dashboard">
+      <div className="teacher-container">
+        <div className="teacher-header">
+          <div>
+            <h2 className="teacher-title">Teacher Dashboard</h2>
+            <div style={{ color: "#475569", fontSize: 14 }}>
+              Welcome, {currentUser?.email || "Teacher"}
             </div>
           </div>
-
-          <div className="main-grid">
-            {/* Calendar */}
-            <div className="calendar-box">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <strong>Calendar</strong>
-                <small>
-                  <span style={{ color: "#90ee90" }}>■ Admin</span> &nbsp; <span style={{ color: "#ffeb3b" }}>■ You</span>
-                </small>
-              </div>
-              <Calendar value={selectedDate} onChange={setSelectedDate} tileClassName={tileClassName} />
-              <div style={{ marginTop: 18 }} className="panel">
-                <h4 style={{ margin: 0 }}>Events on {selectedDate.toDateString()}</h4>
-                <div style={{ marginTop: 10 }}>
-                  {selectedDayEvents.length === 0 ? (
-                      <p className="no-items">No events for this date.</p>
-                  ) : (
-                      <ul className="event-list">
-                        {selectedDayEvents.map(ev => (
-                            <li key={ev.id} className={`event-card ${ev.createdBy === currentUser?.uid ? "teacher-event" : "admin-event"}`}>
-                              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <strong>{ev.name}</strong>
-                                <span className="event-meta">{ev.time || "All day"}</span>
-                              </div>
-                              <div style={{ marginTop: 6 }}>
-                                <small className="event-meta">
-                                  {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Type: ${ev.eventType || "general"}`}
-                                </small>
-                              </div>
-                            </li>
-                        ))}
-                      </ul>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Side Panel */}
-            <div className="side-panel">
-              <div className="panel">
-                <h4>My Courses</h4>
-                {courses.length === 0 ? (
-                    <p className="no-items">No courses. Create one to get started.</p>
-                ) : (
-                    courses.map(c => (
-                        <div key={c.id} className="course-item">
-                          <div>
-                            <div className="course-name">{c.title}</div>
-                            <div className="course-meta">{c.code || ""} • created {new Date(c.createdAt?.toDate?.() || c.createdAt || "").toLocaleDateString()}</div>
-                          </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            <button className="btn btn-secondary" onClick={() => { setSelectedCourseForEvent(c); setShowCreateEvent(true); }}>+ Event</button>
-                            <button className="btn" onClick={() => navigate(`/course/${c.id}`)}>Manage</button>
-                          </div>
-                        </div>
-                    ))
-                )}
-              </div>
-
-              <div className="panel">
-                <h4>Recent Events</h4>
-                {events.length === 0 ? <p className="no-items">No events yet.</p> : (
-                    <ul className="event-list">
-                      {events.slice(0, 6).map(ev => (
-                          <li key={ev.id} className={`event-card ${ev.createdBy === currentUser?.uid ? "teacher-event" : "admin-event"}`}>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <strong>{ev.name}</strong>
-                              <span className="event-meta">{ev.date} {ev.time || ""}</span>
-                            </div>
-                            <div style={{ marginTop: 6 }}>
-                              <small className="event-meta">
-                                {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Admin event • ${ev.targetAudience}`}
-                              </small>
-                            </div>
-                          </li>
-                      ))}
-                    </ul>
-                )}
-              </div>
-            </div>
+          <div className="teacher-actions">
+            <button className="btn" onClick={() => setShowCreateCourse(true)}>+ Create Course</button>
+            <button className="btn" onClick={() => { setShowCreateEvent(true); setSelectedCourseForEvent(null); }}>+ Create Event</button>
+            <button className="btn btn-secondary" onClick={() => navigate("/")}>Home</button>
           </div>
-
-          {showCreateCourse && (
-              <CreateCourse onClose={() => setShowCreateCourse(false)} onCreated={() => setShowCreateCourse(false)} />
-          )}
-
-          {showCreateEvent && (
-              <CreateCourseEvent
-                  teacher={currentUser}
-                  courses={courses}
-                  preselectedCourse={selectedCourseForEvent}
-                  onClose={() => { setShowCreateEvent(false); setSelectedCourseForEvent(null); }}
-              />
-          )}
         </div>
+
+        <div className="main-grid">
+          <div className="calendar-box">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <strong>Calendar</strong>
+            </div>
+
+            <Calendar value={selectedDate} onChange={setSelectedDate} tileClassName={tileClassName} />
+
+            <div style={{ marginTop: 18 }} className="panel">
+              <h4 style={{ margin: 0 }}>Events on {selectedDate.toDateString()}</h4>
+              <div style={{ marginTop: 10 }}>
+                {selectedDayEvents.length === 0 ? (
+                  <p className="no-items">No events for this date.</p>
+                ) : (
+                  <ul className="event-list">
+                    {selectedDayEvents.map(ev => (
+                      <li key={ev.id} className="event-card">
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <strong>{ev.name}</strong>
+                          <span className="event-meta">{ev.time || "All day"}</span>
+                        </div>
+                        <div style={{ marginTop: 6 }}>
+                          <small className="event-meta">
+                            {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Type: ${ev.eventType || "general"}`}
+                          </small>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="side-panel">
+            <div className="panel">
+              <h4>My Courses</h4>
+              {courses.length === 0 ? (
+                <p className="no-items">No courses. Create one to get started.</p>
+              ) : (
+                courses.map(c => (
+                  <div key={c.id} className="course-item">
+                    <div>
+                      <div className="course-name">{c.title}</div>
+                      <div className="course-meta">{c.code || ""} • created {new Date(c.createdAt?.toDate?.() || c.createdAt || "").toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <button className="btn btn-secondary" onClick={() => { setSelectedCourseForEvent(c); setShowCreateEvent(true); }}>+ Event</button>
+                      <button className="btn" onClick={() => navigate(`/course/${c.id}`)}>Manage</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="panel">
+              <h4>Recent Events</h4>
+              {events.length === 0 ? <p className="no-items">No events yet.</p> : (
+                <ul className="event-list">
+                  {events.slice(0, 6).map(ev => (
+                    <li key={ev.id} className="event-card">
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <strong>{ev.name}</strong>
+                        <span className="event-meta">{ev.date} {ev.time || ""}</span>
+                      </div>
+                      <div style={{ marginTop: 6 }}>
+                        <small className="event-meta">
+                          {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Admin event • ${ev.targetAudience}`}
+                        </small>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {showCreateCourse && (
+          <CreateCourse onClose={() => setShowCreateCourse(false)} onCreated={() => setShowCreateCourse(false)} />
+        )}
+
+        {showCreateEvent && (
+          <CreateCourseEvent
+            teacher={currentUser}
+            courses={courses}
+            preselectedCourse={selectedCourseForEvent}
+            onClose={() => { setShowCreateEvent(false); setSelectedCourseForEvent(null); }}
+          />
+        )}
       </div>
+    </div>
   );
 }
 
@@ -265,25 +253,25 @@ function CreateCourse({ onClose, onCreated }) {
   };
 
   return (
-      <div style={modalStyle}>
-        <div style={modalCardStyle}>
-          <h3>Create Course</h3>
-          <form onSubmit={handleCreate}>
-            <div className="form-group">
-              <label>Course Title</label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label>Course Code (optional)</label>
-              <input value={code} onChange={(e) => setCode(e.target.value)} />
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create"}</button>
-              <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
-            </div>
-          </form>
-        </div>
+    <div style={modalStyle}>
+      <div style={modalCardStyle}>
+        <h3>Create Course</h3>
+        <form onSubmit={handleCreate}>
+          <div className="form-group">
+            <label>Course Title</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Course Code (optional)</label>
+            <input value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create"}</button>
+            <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
       </div>
+    </div>
   );
 }
 
@@ -329,48 +317,48 @@ function CreateCourseEvent({ teacher, courses, preselectedCourse, onClose }) {
   };
 
   return (
-      <div style={modalStyle}>
-        <div style={modalCardStyle}>
-          <h3>Create Course Event</h3>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Event Name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
+    <div style={modalStyle}>
+      <div style={modalCardStyle}>
+        <h3>Create Course Event</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Event Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
 
-            <div className="form-group">
-              <label>Course</label>
-              <select value={courseId} onChange={(e) => setCourseId(e.target.value)} required>
-                <option value="">-- Select course --</option>
-                {courses.map(c => <option key={c.id} value={c.id}>{c.title} {c.code ? `(${c.code})` : ""}</option>)}
-              </select>
-            </div>
+          <div className="form-group">
+            <label>Course</label>
+            <select value={courseId} onChange={(e) => setCourseId(e.target.value)} required>
+              <option value="">-- Select course --</option>
+              {courses.map(c => <option key={c.id} value={c.id}>{c.title} {c.code ? `(${c.code})` : ""}</option>)}
+            </select>
+          </div>
 
-            <div className="form-group">
-              <label>Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
+          <div className="form-group">
+            <label>Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </div>
 
-            <div className="form-group">
-              <label>Time</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
+          <div className="form-group">
+            <label>Time</label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
 
-            <div className="form-group">
-              <label>Audience</label>
-              <select value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
-                <option value="students">Students</option>
-                <option value="both">Both (Students & Teachers)</option>
-              </select>
-            </div>
+          <div className="form-group">
+            <label>Audience</label>
+            <select value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
+              <option value="students">Students</option>
+              <option value="both">Both (Students & Teachers)</option>
+            </select>
+          </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create Event"}</button>
-              <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
-            </div>
-          </form>
-        </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create Event"}</button>
+            <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
       </div>
+    </div>
   );
 }
 
