@@ -1,90 +1,70 @@
 .teacher-dashboard {
-  padding: 20px;
+  min-height: 100vh;
+  background-attachment: fixed;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 60px 20px;
+  color: #0f172a;
+  font-family: "Poppins", sans-serif;
 }
 
 .teacher-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  width: 100%;
+  max-width: 1000px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 40px 60px rgba(0,0,0,0.18);
+  backdrop-filter: blur(6px);
 }
 
-.main-grid {
-  display: flex;
-  gap: 20px;
+.teacher-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
 }
 
-/* Calendar box */
-.calendar-box {
-  flex: 3; /* Take 2/3 of the space */
-  min-width: 300px; /* Prevent overflow */
-}
+.teacher-title { font-size: 1.9rem; font-weight:700; color:#0f172a; }
 
-/* Side panel */
-.side-panel {
-  flex: 1.5; /* Take 1/3 of the space */
-  min-width: 250px;
-}
+.teacher-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-/* Calendar adjustments */
-.react-calendar {
-  width: 100% !important;
-  max-width: 100% !important;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-family: Arial, Helvetica, sans-serif;
-}
+.btn { background-color:#2563eb; color:#fff; padding:8px 14px; border-radius:8px; border:0; cursor:pointer; font-weight:600; }
+.btn-secondary { background:#e5e7eb; color:#111827; }
+.btn:disabled { opacity:0.6; cursor:not-allowed; }
 
-.panel {
-  background: #f9f9f9;
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 12px;
-}
+.main-grid { display:grid; grid-template-columns: 1fr 360px; gap:20px; align-items:start; }
 
-.event-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+/* Calendar area (left) */
+.calendar-box { padding:12px; border-radius:16px; background:linear-gradient(180deg, #fff, #fbfbff); }
+.react-calendar { width:100% !important; border-radius:12px; padding:8px; }
 
-.event-card {
-  background: #fff;
-  padding: 8px;
-  margin-bottom: 6px;
-  border-radius: 6px;
-  border-left: 4px solid #ccc;
-}
-.react-calendar .event-day {
-  position: relative;
-  background: transparent !important;
-}
+/* Right column: courses & events */
+.side-panel { display:flex; flex-direction:column; gap:16px; }
 
-.react-calendar .event-day::after {
-  content: '';
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin: 0 auto;
-  margin-top: 2px;
-  background-color: green; /* default color */
-}
+.panel { background:#fff; padding:14px; border-radius:12px; box-shadow:0 6px 18px rgba(15,23,42,0.06); }
 
-.react-calendar__tile.admin-event {
-  background-color: #90ee90 !important; /* light green */
-  color: #000; /* text color */
-  border-radius: 6px; /* optional: rounded corners */
-}
+.course-item { display:flex; justify-content:space-between; gap:8px; padding:10px; border-radius:10px; background:#f8fafc; margin-bottom:8px; }
+.course-name { font-weight:600; color:#0f172a; }
+.course-meta { font-size:13px; color:#475569; }
 
-/* Full tile background for teacher's own events */
-.react-calendar__tile.teacher-event {
-  background-color: #ffeb3b !important; /* yellow */
-  color: #000; /* text color */
-  border-radius: 6px; /* optional: rounded corners */
-}
+.event-list { list-style:none; padding:0; margin:0; display:grid; gap:10px; }
+.event-card { padding:10px; border-radius:10px; background:#fff; border:1px solid #eff6ff; box-shadow:0 6px 12px rgba(15,23,42,0.04); }
+.event-meta { font-size:13px; color:#6b7280; }
 
-/* Optional: hover effect */
-.react-calendar__tile.admin-event:hover,
-.react-calendar__tile.teacher-event:hover {
-  opacity: 0.85;
+/* small form styles used in create flows */
+.form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.form-group label { font-weight:600; color:#334155; }
+.form-group input, .form-group select, .form-group textarea {
+  padding:10px; border-radius:8px; border:1px solid #e2e8f0; outline:none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { box-shadow:0 0 0 3px rgba(37,99,235,0.06); border-color:#2563eb; }
+
+.no-items { color:#475569; font-weight:500; text-align:center; padding:18px 0; }
+
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .teacher-container { padding:20px; }
 }
