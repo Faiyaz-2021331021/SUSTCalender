@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { db } from "../../firebase";
+
 import {
   collection,
   query,
@@ -171,38 +172,42 @@ function CreateOrEditEvent({ teacher, course, eventData, onClose }) {
   };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, display: "flex",
-      justifyContent: "center", alignItems: "center",
-      background: "rgba(0,0,0,0.4)", zIndex: 1200
-    }}>
-      <div style={{ background: "#fff", padding: 20, borderRadius: 10, width: 400 }}>
+    <div className="modal-overlay">
+      <div className="modal-container">
         <h3>{eventData ? "Edit Event" : "Create Event"}</h3>
+
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 10 }}>
+          <div className="form-row">
             <label>Event Name</label>
             <input value={name} onChange={e => setName(e.target.value)} required />
           </div>
-          <div style={{ marginBottom: 10 }}>
+
+          <div className="form-row">
             <label>Date</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} required />
           </div>
-          <div style={{ marginBottom: 10 }}>
+
+          <div className="form-row">
             <label>Time</label>
             <input type="time" value={time} onChange={e => setTime(e.target.value)} />
           </div>
-          <div style={{ marginBottom: 10 }}>
+
+          <div className="form-row">
             <label>Audience</label>
             <select value={targetAudience} onChange={e => setTargetAudience(e.target.value)}>
               <option value="students">Students</option>
               <option value="both">Both (Students & Teachers)</option>
             </select>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+
+          <div className="button-row">
             <button className="btn" type="submit" disabled={loading}>
               {loading ? "Saving..." : eventData ? "Save" : "Create"}
             </button>
-            <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
+
+            <button className="btn btn-secondary" type="button" onClick={onClose}>
+              Cancel
+            </button>
           </div>
         </form>
       </div>

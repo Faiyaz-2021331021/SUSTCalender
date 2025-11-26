@@ -82,6 +82,14 @@
     margin: 0 auto;
 }
 
+/* --- New White Card for Home & See All Events --- */
+.page-card {
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
 /* --- Event Step --- */
 .event-step {
     text-align: center;
