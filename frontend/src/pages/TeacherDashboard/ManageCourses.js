@@ -6,12 +6,14 @@ import {
   collection,
   query,
   where,
+  orderBy,
   onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   serverTimestamp,
+  arrayUnion
 } from "firebase/firestore";
 
 export default function ManageCourses({ course, teacher, onClose }) {
@@ -20,6 +22,10 @@ export default function ManageCourses({ course, teacher, onClose }) {
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [eventToEdit, setEventToEdit] = useState(null);
+
+  const [attendanceSessions, setAttendanceSessions] = useState([]);
+  const [newSessionDate, setNewSessionDate] = useState("");
+  const [sessionEdits, setSessionEdits] = useState({});
 
   // Load course events
   useEffect(() => {
@@ -31,6 +37,30 @@ export default function ManageCourses({ course, teacher, onClose }) {
       setEvents(list.sort((a, b) => (a.date || "").localeCompare(b.date || "")));
     });
 
+    return () => unsub();
+  }, [course]);
+
+  // Load attendance sessions
+  useEffect(() => {
+    if (!course) return;
+    const q = query(
+      collection(db, "courses", course.id, "attendance"),
+      orderBy("date", "desc")
+    );
+    const unsub = onSnapshot(q, snap => {
+      const list = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        entries: doc.data().entries || []
+      }));
+      setAttendanceSessions(list);
+      // sync edits state with latest data
+      const next = {};
+      list.forEach(sess => {
+        next[sess.id] = sess.entries || [];
+      });
+      setSessionEdits(next);
+    });
     return () => unsub();
   }, [course]);
 
@@ -48,36 +78,111 @@ export default function ManageCourses({ course, teacher, onClose }) {
     return null;
   };
 
+  const createAttendanceSession = async () => {
+    if (!newSessionDate) return alert("Pick a session date.");
+    if (!teacher) return alert("No teacher auth.");
+    await addDoc(collection(db, "courses", course.id, "attendance"), {
+      date: newSessionDate,
+      entries: [],
+      createdBy: teacher.uid,
+      createdAt: serverTimestamp()
+    });
+    setNewSessionDate("");
+  };
+
+  const updateSessionEntry = (sessionId, index, field, value) => {
+    setSessionEdits(prev => {
+      const copy = [...(prev[sessionId] || [])];
+      copy[index] = { ...(copy[index] || { student: "", status: "present" }), [field]: value };
+      return { ...prev, [sessionId]: copy };
+    });
+  };
+
+  const addSessionRow = (sessionId) => {
+    setSessionEdits(prev => {
+      const copy = [...(prev[sessionId] || [])];
+      copy.push({ student: "", status: "present" });
+      return { ...prev, [sessionId]: copy };
+    });
+  };
+
+  const saveSessionSheet = async (sessionId) => {
+    const rows = (sessionEdits[sessionId] || []).filter(r => r.student?.trim());
+    try {
+      await updateDoc(doc(db, "courses", course.id, "attendance", sessionId), {
+        entries: rows
+      });
+      alert("Attendance saved.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save attendance.");
+    }
+  };
+
   if (!course) return null;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Manage Course: {course.title}</h2>
-      <button onClick={onClose} style={{ marginBottom: 20 }}>Back to Dashboard</button>
+    <div className="manage-wrapper">
+      <div className="manage-card">
+        <div className="manage-header">
+          <h2>Manage Course: {course.title}</h2>
+          <button className="btn btn-secondary" onClick={onClose}>Back to Dashboard</button>
+        </div>
 
-      <h3>Course Info</h3>
-      <p>Code: {course.code || "N/A"}</p>
-      <p>Created: {new Date(course.createdAt?.toDate?.() || course.createdAt || "").toLocaleDateString()}</p>
+        <div className="manage-grid">
+          <div className="manage-card-inner">
+            <h3>Course Info</h3>
+            <p className="course-meta">Code: {course.code || "N/A"}</p>
+            <p className="course-meta">Created: {new Date(course.createdAt?.toDate?.() || course.createdAt || "").toLocaleDateString()}</p>
 
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <div style={{ flex: 1 }}>
-          <h3>Calendar</h3>
-          <Calendar value={selectedDate} onChange={setSelectedDate} tileClassName={tileClassName} />
-          <div style={{ marginTop: 10 }}>
-            <h4>Events on {selectedDate.toDateString()}</h4>
-            {selectedDayEvents.length === 0 ? (
-              <p>No events for this date.</p>
-            ) : (
-              <ul>
-                {selectedDayEvents.map(ev => (
-                  <li key={ev.id} style={{ marginBottom: 6 }}>
-                    <strong>{ev.name}</strong> — {ev.time || "All day"}
-                    <button
-                      style={{ marginLeft: 10 }}
-                      onClick={() => setEventToEdit(ev)}
-                    >
-                      Edit
-                    </button>
+            <h3>Calendar</h3>
+            <Calendar value={selectedDate} onChange={setSelectedDate} tileClassName={tileClassName} />
+            <div style={{ marginTop: 10 }}>
+              <h4>Events on {selectedDate.toDateString()}</h4>
+              {selectedDayEvents.length === 0 ? (
+                <p className="no-items">No events for this date.</p>
+              ) : (
+                <ul className="event-list">
+                  {selectedDayEvents.map(ev => (
+                    <li key={ev.id} className="event-card">
+                      <strong>{ev.name}</strong> - {ev.time || "All day"}
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: "6px 10px", fontSize: 13, marginLeft: 10 }}
+                        onClick={() => setEventToEdit(ev)}
+                      >
+                        Edit
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="manage-card-inner">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3>All Events</h3>
+              <button className="btn btn-secondary" onClick={() => setShowCreateEvent(true)}>+ Create Event</button>
+            </div>
+            {events.length === 0 ? <p className="no-items">No events yet.</p> : (
+              <ul className="event-list">
+                {events.map(ev => (
+                  <li key={ev.id} className="event-card">
+                    <strong>{ev.name}</strong> - {ev.date} {ev.time || ""}
+                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                      <button className="btn btn-secondary" onClick={() => setEventToEdit(ev)}>Edit</button>
+                      <button
+                        className="btn"
+                        style={{ background: "#dc2626" }}
+                        onClick={async () => {
+                          if (!window.confirm("Delete this event?")) return;
+                          await deleteDoc(doc(db, "events", ev.id));
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -85,47 +190,90 @@ export default function ManageCourses({ course, teacher, onClose }) {
           </div>
         </div>
 
-        <div style={{ flex: 1 }}>
-          <h3>All Events</h3>
-          <button onClick={() => setShowCreateEvent(true)}>+ Create Event</button>
-          <ul>
-            {events.map(ev => (
-              <li key={ev.id} style={{ marginBottom: 6 }}>
-                <strong>{ev.name}</strong> — {ev.date} {ev.time || ""}
-                <button style={{ marginLeft: 10 }} onClick={() => setEventToEdit(ev)}>Edit</button>
-                <button
-                  style={{ marginLeft: 5, background: "#dc2626", color: "#fff" }}
-                  onClick={async () => {
-                    if (!window.confirm("Delete this event?")) return;
-                    await deleteDoc(doc(db, "events", ev.id));
-                  }}
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="manage-card-inner attendance-card">
+          <div className="attendance-header">
+            <h3>Attendance</h3>
+            <div className="attendance-create">
+              <input type="date" value={newSessionDate} onChange={(e) => setNewSessionDate(e.target.value)} />
+              <button className="btn btn-secondary" onClick={createAttendanceSession}>+ Create Session</button>
+            </div>
+          </div>
+
+          {attendanceSessions.length === 0 ? (
+            <p className="no-items">No attendance sessions yet. Create one to start tracking.</p>
+          ) : (
+            attendanceSessions.map(session => {
+              const rows = sessionEdits[session.id] || [];
+              return (
+                <div key={session.id} className="attendance-session">
+                  <div className="session-title">Session: {session.date}</div>
+                  <div className="attendance-inputs">
+                    <button className="btn btn-secondary" onClick={() => addSessionRow(session.id)}>+ Row</button>
+                    <button className="btn btn-secondary" onClick={() => saveSessionSheet(session.id)}>Save Sheet</button>
+                  </div>
+                  <table className="attendance-table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="empty-cell">No entries yet.</td>
+                        </tr>
+                      )}
+                      {rows.map((entry, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <input
+                              type="text"
+                              className="input-field"
+                              value={entry.student || ""}
+                              onChange={(e) => updateSessionEntry(session.id, idx, "student", e.target.value)}
+                              placeholder="Name or email"
+                            />
+                          </td>
+                          <td>
+                            <select
+                              className="input-field"
+                              value={entry.status || "present"}
+                              onChange={(e) => updateSessionEntry(session.id, idx, "status", e.target.value)}
+                            >
+                              <option value="present">Present</option>
+                              <option value="absent">Absent</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })
+          )}
         </div>
+
+        {/* Create Event Modal */}
+        {showCreateEvent && (
+          <CreateOrEditEvent
+            teacher={teacher}
+            course={course}
+            onClose={() => setShowCreateEvent(false)}
+          />
+        )}
+
+        {/* Edit Event Modal */}
+        {eventToEdit && (
+          <CreateOrEditEvent
+            teacher={teacher}
+            course={course}
+            eventData={eventToEdit}
+            onClose={() => setEventToEdit(null)}
+          />
+        )}
       </div>
-
-      {/* Create Event Modal */}
-      {showCreateEvent && (
-        <CreateOrEditEvent
-          teacher={teacher}
-          course={course}
-          onClose={() => setShowCreateEvent(false)}
-        />
-      )}
-
-      {/* Edit Event Modal */}
-      {eventToEdit && (
-        <CreateOrEditEvent
-          teacher={teacher}
-          course={course}
-          eventData={eventToEdit}
-          onClose={() => setEventToEdit(null)}
-        />
-      )}
     </div>
   );
 }

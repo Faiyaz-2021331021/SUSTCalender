@@ -13,3 +13,10 @@
     box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(6px);
 }
+
+.event-highlight {
+    background: #ef4444 !important;
+    color: #fff !important;
+    font-weight: 700;
+    border-radius: 10px;
+}

@@ -25,8 +25,7 @@ export default function AdminDashboard({ db }) {
     return (
         <div className="dashboard-container" style={backgroundStyle}>
             <header className="dashboard-header">
-                <h2>Admin Dashboard</h2>
-                <button className="home-link" onClick={() => navigate("/")}>Home</button>
+                <h2 className="centered-title">Admin Dashboard</h2>
             </header>
 
             <nav className="dashboard-nav">
