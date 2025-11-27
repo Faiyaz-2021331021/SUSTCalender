@@ -19,13 +19,15 @@ export default function Login() {
 
       const snapshot = await getDoc(doc(db, "users", uid));
 
-      if (!snapshot.exists()) {
-        alert("User profile not found!");
-        return;
+      let targetRole = role;
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.role) {
+          targetRole = data.role;
+        }
       }
 
-      const data = snapshot.data();
-      navigate(`/${data.role}-dashboard`);
+      navigate(`/${targetRole}-dashboard`);
     } catch (err) {
       alert(err.message);
     }
@@ -34,7 +36,6 @@ export default function Login() {
   return (
     <div className="login-container">
       <div className="login-box">
-        <button className="home-btn" onClick={() => navigate("/")}>🏠 Home</button>
         <h1 className="login-title">{role?.toUpperCase()} Login</h1>
         <p className="login-subtitle">Access your {role} dashboard</p>
 
@@ -58,8 +59,12 @@ export default function Login() {
           <button className="btn login" onClick={login}>
             Login
           </button>
-          <button className="btn signup" onClick={() => navigate(`/signup?role=${role}`)}>
-            Need an account?
+        </div>
+
+        <div className="secondary-action">
+          <span>Need an account?</span>
+          <button className="btn signup alt-signup" onClick={() => navigate(`/signup?role=${role}`)}>
+            Sign up here
           </button>
         </div>
       </div>

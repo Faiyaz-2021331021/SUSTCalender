@@ -10,23 +10,25 @@ export default function StudentDashboard() {
             <h1 className="dash-title">Student Dashboard</h1>
 
             <div className="dash-grid">
-
                 <div className="dash-card" onClick={() => navigate("/student-calendar")}>
-                    📅 View Calendar
+                    View Calendar
                 </div>
 
                 <div className="dash-card" onClick={() => navigate("/student-events")}>
-                    🎉 See Events
+                    See Events
                 </div>
 
                 <div className="dash-card" onClick={() => navigate("/student-courses")}>
-                    📚 My Courses
+                    My Courses
                 </div>
 
                 <div className="dash-card" onClick={() => navigate("/student-profile")}>
-                    👤 My Profile
+                    My Profile
                 </div>
 
+                <div className="dash-card" onClick={() => navigate("/student-profile-edit")}>
+                    Edit Profile
+                </div>
             </div>
         </div>
     );

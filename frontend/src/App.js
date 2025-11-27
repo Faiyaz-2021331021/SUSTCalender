@@ -3,12 +3,14 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import RoleSelection from "./components/RoleSelection";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import GlobalNav from "./components/GlobalNav";
 
 import StudentDashboard from "./pages/StudentDashboard/StudentDashboard";
 import StudentCalendar from "./pages/StudentDashboard/StudentCalendar";
 import StudentEvents from "./pages/StudentDashboard/StudentEvents";
 import StudentCourses from "./pages/StudentDashboard/StudentCourses";
 import StudentProfile from "./pages/StudentDashboard/StudentProfile";
+import StudentProfileEdit from "./pages/StudentDashboard/StudentProfileEdit";
 
 import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard/TeacherDashboard";
@@ -31,6 +33,7 @@ function App() {
       <AuthProvider>
         <div className="app-background" style={appBackground}>
           <Router>
+            <GlobalNav />
             <Routes>
               {/* Public pages */}
               <Route path="/" element={<RoleSelection />} />
@@ -43,6 +46,7 @@ function App() {
               <Route path="/student-events" element={<StudentEvents />} />
               <Route path="/student-courses" element={<StudentCourses />} />
               <Route path="/student-profile" element={<StudentProfile />} />
+              <Route path="/student-profile-edit" element={<StudentProfileEdit />} />
 
               {/* Admin */}
               <Route path="/admin-dashboard" element={<AdminDashboard db={db} />} />

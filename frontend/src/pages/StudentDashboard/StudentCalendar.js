@@ -3,11 +3,13 @@ import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
 import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useNavigate } from "react-router-dom";
 import "./StudentCalendar.css";
 
 export default function StudentCalendar() {
     const [events, setEvents] = useState([]);
     const [selectedDateEvents, setSelectedDateEvents] = useState([]);
+    const navigate = useNavigate();
 
     // Load all events from Firestore
     useEffect(() => {
@@ -43,7 +45,12 @@ export default function StudentCalendar() {
 
     return (
         <div className="calendar-wrapper">
-            <h2>Student Calendar</h2>
+            <div className="section-header">
+                <div style={{ flex: 1, textAlign: "center" }}>
+                    <h2>Student Calendar</h2>
+                </div>
+                <button className="close-btn" onClick={() => navigate("/student-dashboard")}>✕</button>
+            </div>
 
             <Calendar
                 onClickDay={handleDateClick}
