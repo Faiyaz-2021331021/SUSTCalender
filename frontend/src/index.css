@@ -1,7 +1,12 @@
 body {
-  background-color: #2798F5; /* light blue, change to any color you like */
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  background-image: url('./sust-saheed-minar.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 

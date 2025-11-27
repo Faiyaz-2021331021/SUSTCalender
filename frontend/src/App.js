@@ -3,26 +3,61 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import RoleSelection from "./components/RoleSelection";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
-import StudentDashboard from "./pages/StudentDashboard";
-import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
+import GlobalNav from "./components/GlobalNav";
 
-// Import the database connection from your firebase.js file
+import StudentDashboard from "./pages/StudentDashboard/StudentDashboard";
+import StudentCalendar from "./pages/StudentDashboard/StudentCalendar";
+import StudentEvents from "./pages/StudentDashboard/StudentEvents";
+import StudentCourses from "./pages/StudentDashboard/StudentCourses";
+import StudentProfile from "./pages/StudentDashboard/StudentProfile";
+import StudentProfileEdit from "./pages/StudentDashboard/StudentProfileEdit";
+
+import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
+import TeacherDashboard from "./pages/TeacherDashboard/TeacherDashboard";
+
+import backgroundImage from "./sust-saheed-minar.jpg";
+import { AuthProvider } from "./context/AuthContext";
 import { db } from "./firebase";
 
 function App() {
-    return (
-        <Router>
-            <Routes>
-                <Route path="/" element={<RoleSelection />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/login" element={<Login />} />
+  const appBackground = {
+    minHeight: "100vh",
+    backgroundImage: `linear-gradient(120deg, rgba(14, 32, 64, 0.45), rgba(5, 11, 26, 0.35)), url(${backgroundImage})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundAttachment: "fixed"
+  };
 
-                {/* Pass the 'db' prop to the dashboards */}
-                <Route path="/student-dashboard" element={<StudentDashboard db={db} />} />
-                <Route path="/admin-dashboard" element={<AdminDashboard db={db} />} />
+  return (
+      <AuthProvider>
+        <div className="app-background" style={appBackground}>
+          <Router>
+            <GlobalNav />
+            <Routes>
+              {/* Public pages */}
+              <Route path="/" element={<RoleSelection />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
+
+              {/* Student pages */}
+              <Route path="/student-dashboard" element={<StudentDashboard />} />
+              <Route path="/student-calendar" element={<StudentCalendar />} />
+              <Route path="/student-events" element={<StudentEvents />} />
+              <Route path="/student-courses" element={<StudentCourses />} />
+              <Route path="/student-profile" element={<StudentProfile />} />
+              <Route path="/student-profile-edit" element={<StudentProfileEdit />} />
+
+              {/* Admin */}
+              <Route path="/admin-dashboard" element={<AdminDashboard db={db} />} />
+
+              {/* Teacher */}
+              <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
             </Routes>
-        </Router>
-    );
+          </Router>
+        </div>
+      </AuthProvider>
+  );
 }
 
 export default App;

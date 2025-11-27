@@ -15,7 +15,7 @@ export default function AdminDashboard({ db }) {
     const [page, setPage] = useState("main");
     const navigate = useNavigate();
     const backgroundStyle = {
-        backgroundImage: `linear-gradient(120deg, rgba(7, 17, 40, 0.85), rgba(3, 8, 20, 0.75)), url(${backgroundImage})`,
+        backgroundImage: `linear-gradient(120deg, rgba(7, 17, 40, 0.45), rgba(3, 8, 20, 0.35)), url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -36,9 +36,24 @@ export default function AdminDashboard({ db }) {
             </nav>
 
             <main className="dashboard-main">
-                {page === "main" && <p>Welcome! Select an action above.</p>}
-                {page === "create" && <CreateEvent db={db} />}
-                {page === "see" && <SeeAllEvents db={db} />}
+                {page === "main" && (
+                    <div className="page-card">
+                        <h3>Welcome Admin</h3>
+                        <p>Select an action above.</p>
+                    </div>
+                )}
+
+                {page === "create" && (
+                    <div className="page-card">
+                        <CreateEvent db={db} />
+                    </div>
+                )}
+
+                {page === "see" && (
+                    <div className="page-card">
+                        <SeeAllEvents db={db} />
+                    </div>
+                )}
             </main>
         </div>
     );
