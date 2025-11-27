@@ -208,13 +208,22 @@ export default function TeacherDashboard() {
                     <div key={c.id} className="course-item">
                       <div>
                         <div className="course-name">{c.title}</div>
-                        <div className="course-meta">{c.code || ""} • created {new Date(c.createdAt?.toDate?.() || c.createdAt || "").toLocaleDateString()}</div>
+                        <div className="course-meta">
+                          {c.code || ""} • created {new Date(c.createdAt?.toDate?.() || c.createdAt || "").toLocaleDateString()}
+                        </div>
+                        <div className="course-meta">Instructor: {currentUser?.email || "You"}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <button className="btn btn-secondary" onClick={() => { setSelectedCourseForEvent(c); setShowCreateEvent(true); }}>+ Event</button>
                         <button className="btn" 
                           onClick={() => { setSelectedCourse(c); setView("manage"); }}>
                           Manage
+                        </button>
+                        <button className="btn btn-secondary" onClick={() => alert(`Attendance tracking for ${c.title} coming soon.`)}>
+                          Attendance
+                        </button>
+                        <button className="btn btn-secondary" onClick={() => alert(`Term test marks for ${c.title} coming soon.`)}>
+                          Term Tests
                         </button>
                       </div>
                     </div>

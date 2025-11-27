@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import "./Login.css";
 
 export default function Login() {
@@ -13,18 +13,37 @@ export default function Login() {
   const navigate = useNavigate();
 
   const login = async () => {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
+      alert("Please enter both email and password.");
+      return;
+    }
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
       const uid = userCredential.user.uid;
 
-      const snapshot = await getDoc(doc(db, "users", uid));
+      const userRef = doc(db, "users", uid);
+      const snapshot = await getDoc(userRef);
 
-      let targetRole = role;
+      let targetRole = role; // default to the query param (teacher/admin/student)
       if (snapshot.exists()) {
         const data = snapshot.data();
-        if (data.role) {
-          targetRole = data.role;
+        const storedRole = data.role;
+        if (storedRole && storedRole !== role) {
+          // If the stored role differs from the current context, honor the current context and update Firestore
+          targetRole = role;
+          await setDoc(userRef, { role: targetRole }, { merge: true });
+        } else if (storedRole) {
+          targetRole = storedRole;
+        } else {
+          await setDoc(userRef, { role: targetRole }, { merge: true });
         }
+      } else {
+        // If no user doc, create a minimal one using the current context
+        await setDoc(userRef, { email, role: targetRole, createdAt: new Date() }, { merge: true });
       }
 
       navigate(`/${targetRole}-dashboard`);
