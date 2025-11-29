@@ -146,7 +146,7 @@ export default function TeacherDashboard() {
             <div className="teacher-actions">
               <button className="btn" onClick={() => setShowCreateCourse(true)}>+ Create Course</button>
               <button className="btn" onClick={() => { setShowCreateEvent(true); setSelectedCourseForEvent(null); }}>+ Create Event</button>
-              <button className="btn btn-secondary" onClick={() => navigate("/")}>Home</button>
+              
             </div>
           </div>
 
