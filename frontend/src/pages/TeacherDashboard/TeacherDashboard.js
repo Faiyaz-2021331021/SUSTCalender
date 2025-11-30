@@ -1,559 +1,209 @@
 import React, { useEffect, useState } from "react";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
-import ManageCourses from "./ManageCourses";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc
-} from "firebase/firestore";
-
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../context/AuthContext";
 
-import "./TeacherDashboard.css";
+// Import Modular Components
+import TeacherProfile from "./TeacherProfile";
+import TeacherCourses from "./TeacherCourses";
+import TeacherCalendar from "./TeacherCalendar";
+import ManageCourses from "./ManageCourses";
+import CreateCourseModal from "./CreateCourseModal";
+import CreateCourseEventModal from "./CreateCourseEventModal"; 
+// Note: CreateCourseEventModal also handles editing/deleting events if passed eventData
+
+import "./TeacherDashboard.css"; // Styles are still here
 
 export default function TeacherDashboard() {
-  const navigate = useNavigate();
-  const { currentUser, loading } = useAuth();
+    const navigate = useNavigate();
+    const { currentUser, loading } = useAuth();
+    
+    // Core State
+    const [role, setRole] = useState(null);
+    const [roleLoaded, setRoleLoaded] = useState(false);
+    const [courses, setCourses] = useState([]);
+    const [events, setEvents] = useState([]);
+    
+    // UI State
+    const [view, setView] = useState("calendar"); // Default view: Calendar
+    const [showCreateCourse, setShowCreateCourse] = useState(false);
+    const [showCreateEvent, setShowCreateEvent] = useState(false);
+    const [eventToEdit, setEventToEdit] = useState(null); // For editing events globally
+    const [selectedCourseForEvent, setSelectedCourseForEvent] = useState(null);
 
-  const [role, setRole] = useState(null);
-  const [roleLoaded, setRoleLoaded] = useState(false);
+    // Course Management State
+    const [selectedCourse, setSelectedCourse] = useState(null);
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [courses, setCourses] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [selectedDayEvents, setSelectedDayEvents] = useState([]);
-  const [showCreateCourse, setShowCreateCourse] = useState(false);
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
-  const [selectedCourseForEvent, setSelectedCourseForEvent] = useState(null);
+    // --- Data Fetching Hooks ---
 
-  // Edit event modal state
-  const [showEditEvent, setShowEditEvent] = useState(false);
-  const [eventToEdit, setEventToEdit] = useState(null);
+    // 1. Fetch Teacher Role & Auth Check
+    useEffect(() => {
+        if (!loading && currentUser) {
+            const userRef = doc(db, "users", currentUser.uid);
+            getDoc(userRef)
+                .then(docSnap => {
+                    setRole(docSnap.exists() ? docSnap.data().role : null);
+                })
+                .finally(() => setRoleLoaded(true));
+        } else if (!loading && !currentUser) {
+            setRoleLoaded(true);
+        }
+    }, [currentUser, loading]);
 
-  // For course management page switching
-  const [view, setView] = useState("dashboard");
-  const [selectedCourse, setSelectedCourse] = useState(null);
+    // 2. Redirect if not teacher
+    useEffect(() => {
+        if (!loading && roleLoaded && (!currentUser || role !== "teacher")) {
+            if (roleLoaded) navigate("/");
+        }
+    }, [currentUser, role, roleLoaded, loading, navigate]);
 
-  // Fetch teacher role
-  useEffect(() => {
-    if (!loading && currentUser) {
-      const userRef = doc(db, "users", currentUser.uid);
-      getDoc(userRef)
-        .then(docSnap => {
-          setRole(docSnap.exists() ? docSnap.data().role : null);
-        })
-        .finally(() => setRoleLoaded(true));
-    } else if (!loading && !currentUser) {
-      setRoleLoaded(true);
+    // 3. Load Teacher's Courses (Realtime)
+    useEffect(() => {
+        if (!currentUser) return;
+        const q = query(collection(db, "courses"), where("createdBy", "==", currentUser.uid));
+
+        const unsub = onSnapshot(q, snap => {
+            const list = snap.docs.map(d => {
+                const data = d.data();
+                // Normalize timestamp
+                let createdAtDate = data.createdAt;
+                if (createdAtDate && typeof createdAtDate.toDate === 'function') {
+                    createdAtDate = createdAtDate.toDate();
+                } else if (typeof createdAtDate === 'number') {
+                    createdAtDate = new Date(createdAtDate);
+                }
+                return { id: d.id, ...data, createdAt: createdAtDate };
+            });
+            setCourses(list);
+        });
+        return () => unsub();
+    }, [currentUser]);
+
+    // 4. Load Teacher's Relevant Events (Realtime)
+    useEffect(() => {
+        if (!currentUser) return;
+        // Fetches all events to filter on client side (for simpler querying)
+        const q = query(collection(db, "events"));
+
+        const unsub = onSnapshot(q, snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Filter: Events created by teacher OR system-wide events targetting teachers/both
+            const filtered = list.filter(ev =>
+                ev.createdBy === currentUser.uid || ["teacher", "both"].includes(ev.targetAudience)
+            );
+            // Sort by date
+            setEvents(filtered.sort((a, b) => (a.date || "").localeCompare(b.date || "")));
+        });
+        return () => unsub();
+    }, [currentUser]);
+
+    // --- Handlers ---
+    const handleViewCourse = (course) => {
+        setSelectedCourse(course);
+        setView("manage");
+    };
+
+    const handleQuickCreateEvent = (course = null) => {
+        setSelectedCourseForEvent(course);
+        setEventToEdit(null); // Ensure we are in create mode
+        setShowCreateEvent(true);
+    };
+
+    const handleEditEvent = (event) => {
+        setEventToEdit(event);
+        setSelectedCourseForEvent(null);
+        setShowCreateEvent(true);
     }
-  }, [currentUser, loading]);
-
-  // Redirect if not teacher
-  useEffect(() => {
-    if (!loading && roleLoaded) {
-      if (!currentUser || role !== "teacher") {
-        navigate("/");
-      }
+    
+    // --- Render Loading/Error ---
+    if (loading || !roleLoaded || !currentUser) {
+        return <div className="loading-state">Loading Dashboard...</div>;
     }
-  }, [currentUser, role, roleLoaded, loading, navigate]);
 
-  // Load courses (realtime)
-  useEffect(() => {
-    if (!currentUser) return;
+    // --- Dynamic Content Rendering ---
 
-    const q = query(
-      collection(db, "courses"),
-      where("createdBy", "==", currentUser.uid)
-    );
-
-    const unsub = onSnapshot(q, snap => {
-      const list = snap.docs.map(d => {
-        const data = d.data();
-        return { id: d.id, ...data, createdAt: data.createdAt || serverTimestamp() };
-      });
-      setCourses(list);
-    });
-
-    return () => unsub();
-  }, [currentUser]);
-
-  // Load events (realtime)
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const q = query(collection(db, "events"));
-
-    const unsub = onSnapshot(q, snap => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const filtered = list.filter(ev =>
-        ev.createdBy === currentUser.uid || ["teacher", "both"].includes(ev.targetAudience)
-      );
-      setEvents(filtered.sort((a, b) => (a.date || "").localeCompare(b.date || "")));
-    });
-
-    return () => unsub();
-  }, [currentUser]);
-
-  // Update selected day events
-  useEffect(() => {
-    const formatted = selectedDate.toISOString().split("T")[0];
-    setSelectedDayEvents(events.filter(ev => ev.date === formatted));
-  }, [selectedDate, events]);
-
-  const tileClassName = ({ date, view }) => {
-    if (view === "month") {
-      const formatted = date.toISOString().split("T")[0];
-      return events.some(ev => ev.date === formatted) ? "event-day" : null;
-    }
-    return null;
-  };
-
-  if (loading || !roleLoaded) {
-    return <div>Loading...</div>;
-  }
-
-  // -------------------- MAIN RETURN --------------------
-  return (
-    <div className="teacher-dashboard">
-
-      {/* ---------- ManageCourses view ---------- */}
-      {view === "manage" && selectedCourse && (
-        <ManageCourses
-          course={selectedCourse}
-          onClose={() => setView("dashboard")}
-        />
-      )}
-
-      {view === "dashboard" && (
-        <div className="teacher-container">
-          <div className="teacher-header">
-            <div>
-              <h2 className="teacher-title">Teacher Dashboard</h2>
-              <div style={{ color: "#475569", fontSize: 14 }}>
-                Welcome, {currentUser?.email || "Teacher"}
-              </div>
-            </div>
-            <div className="teacher-actions">
-              <button className="btn" onClick={() => setShowCreateCourse(true)}>+ Create Course</button>
-              <button className="btn" onClick={() => { setShowCreateEvent(true); setSelectedCourseForEvent(null); }}>+ Create Event</button>
-              
-            </div>
-          </div>
-
-          <div className="main-grid">
-            <div className="calendar-box">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <strong>Calendar</strong>
-              </div>
-
-              <Calendar value={selectedDate} onChange={setSelectedDate} tileClassName={tileClassName} />
-
-              <div style={{ marginTop: 18 }} className="panel">
-                <h4 style={{ margin: 0 }}>Events on {selectedDate.toDateString()}</h4>
-                <div style={{ marginTop: 10 }}>
-                  {selectedDayEvents.length === 0 ? (
-                    <p className="no-items">No events for this date.</p>
-                  ) : (
-                    <ul className="event-list">
-                      {selectedDayEvents.map(ev => (
-                        <li key={ev.id} className="event-card">
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                            <div>
-                              <strong>{ev.name}</strong>
-                              <div style={{ marginTop: 6 }}>
-                                <small className="event-meta">
-                                  {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Type: ${ev.eventType || "general"}`}
-                                </small>
-                              </div>
-                            </div>
-
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                              <span className="event-meta">{ev.time || "All day"}</span>
-
-                              {/* Manage button */}
-                              <button
-                                className="btn btn-secondary"
-                                style={{ padding: "6px 10px", fontSize: 13 }}
-                                onClick={() => { setEventToEdit(ev); setShowEditEvent(true); }}
-                              >
-                                Manage
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="side-panel">
-              <div className="panel">
-                <h4>My Courses</h4>
-                {courses.length === 0 ? (
-                  <p className="no-items">No courses. Create one to get started.</p>
-                ) : (
-                  courses.map(c => (
-                    <div key={c.id} className="course-item">
-                      <div>
-                        <div className="course-name">{c.title}</div>
-                        <div className="course-meta">
-                          {c.code || ""} • created {new Date(c.createdAt?.toDate?.() || c.createdAt || "").toLocaleDateString()}
-                        </div>
-                        <div className="course-meta">Instructor: {currentUser?.email || "You"}</div>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <button className="btn btn-secondary" onClick={() => { setSelectedCourseForEvent(c); setShowCreateEvent(true); }}>+ Event</button>
-                        <button className="btn" 
-                          onClick={() => { setSelectedCourse(c); setView("manage"); }}>
-                          Manage
-                        </button>
-                        <button className="btn btn-secondary" onClick={() => alert(`Attendance tracking for ${c.title} coming soon.`)}>
-                          Attendance
-                        </button>
-                        <button className="btn btn-secondary" onClick={() => alert(`Term test marks for ${c.title} coming soon.`)}>
-                          Term Tests
-                        </button>
-                      </div>
+    let ComponentToRender;
+    switch (view) {
+        case "calendar":
+            ComponentToRender = <TeacherCalendar events={events} onEditEvent={handleEditEvent} />;
+            break;
+        case "courses":
+            ComponentToRender = <TeacherCourses courses={courses} onManageCourse={handleViewCourse} onQuickCreateEvent={handleQuickCreateEvent} />;
+            break;
+        case "profile":
+            ComponentToRender = <TeacherProfile teacher={currentUser} courses={courses} role={role} />;
+            break;
+        case "manage":
+            if (selectedCourse) {
+                // Pass necessary props to ManageCourses which handles its own modals
+                return (
+                    <div className="teacher-dashboard">
+                        <ManageCourses
+                            course={selectedCourse}
+                            teacher={currentUser}
+                            onClose={() => setView("courses")}
+                        />
                     </div>
-                  ))
-                )}
-              </div>
+                );
+            }
+            ComponentToRender = <TeacherCourses courses={courses} onManageCourse={handleViewCourse} onQuickCreateEvent={handleQuickCreateEvent} />;
+            setView("courses"); // Redirect back if somehow manage view is hit without a course
+            break;
+        default:
+            ComponentToRender = <TeacherCalendar events={events} onEditEvent={handleEditEvent} />;
+            setView("calendar"); // Default to calendar
+    }
 
-              <div className="panel">
-                <h4>Recent Events</h4>
-                {events.length === 0 ? <p className="no-items">No events yet.</p> : (
-                  <ul className="event-list">
-                    {events.slice(0, 6).map(ev => (
-                      <li key={ev.id} className="event-card">
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                          <div>
-                            <strong>{ev.name}</strong>
-                            <div style={{ marginTop: 6 }}>
-                              <small className="event-meta">
-                                {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Admin event • ${ev.targetAudience}`}
-                              </small>
-                            </div>
-                          </div>
-
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                            <span className="event-meta">{ev.date} {ev.time || ""}</span>
-
-                            <button
-                              className="btn btn-secondary"
-                              style={{ padding: "6px 10px", fontSize: 13 }}
-                              onClick={() => { setEventToEdit(ev); setShowEditEvent(true); }}
-                            >
-                              Manage
-                            </button>
-                          </div>
+    // --- Main Dashboard Structure ---
+    return (
+        <div className="teacher-dashboard">
+            <div className="teacher-container">
+                <div className="teacher-header">
+                    <div>
+                        <h2 className="teacher-title">Teacher Dashboard </h2>
+                        <div className="teacher-meta-info">
+                            Welcome, {currentUser.email.split('@')[0]} ({role})
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                    </div>
+                    <div className="teacher-actions">
+                        <button className={`btn ${view === "calendar" ? "btn-primary" : "btn-secondary"}`} onClick={() => setView("calendar")}>View Calendar</button>
+                        <button className={`btn ${view === "courses" ? "btn-primary" : "btn-secondary"}`} onClick={() => setView("courses")}>My Courses</button>
+                        <button className={`btn ${view === "profile" ? "btn-primary" : "btn-secondary"}`} onClick={() => setView("profile")}>My Profile</button>
+                        <button className="btn" onClick={() => setShowCreateCourse(true)}>+ Create Course</button>
+                        <button className="btn" onClick={() => handleQuickCreateEvent()}>+ Create Event</button>
+                    </div>
+                </div>
+
+                <div className="dashboard-content">
+                    {ComponentToRender}
+                </div>
+
+                {/* --- Modals (Global) --- */}
+                
+                {/* 1. Create Course Modal */}
+                {showCreateCourse && (
+                    <CreateCourseModal
+                        teacher={currentUser}
+                        onClose={() => setShowCreateCourse(false)}
+                    />
                 )}
-              </div>
+
+                {/* 2. Create/Edit Event Modal */}
+                {showCreateEvent && (
+                    <CreateCourseEventModal
+                        teacher={currentUser}
+                        courses={courses}
+                        preselectedCourse={selectedCourseForEvent}
+                        eventData={eventToEdit} // Pass event data if editing
+                        onClose={() => { 
+                            setShowCreateEvent(false); 
+                            setSelectedCourseForEvent(null); 
+                            setEventToEdit(null); 
+                        }}
+                    />
+                )}
             </div>
-          </div>
-
-          {showCreateCourse && (
-            <CreateCourse onClose={() => setShowCreateCourse(false)} onCreated={() => setShowCreateCourse(false)} />
-          )}
-
-          {showCreateEvent && (
-            <CreateCourseEvent
-              teacher={currentUser}
-              courses={courses}
-              preselectedCourse={selectedCourseForEvent}
-              onClose={() => { setShowCreateEvent(false); setSelectedCourseForEvent(null); }}
-            />
-          )}
-
-          {showEditEvent && eventToEdit && (
-            <EditEventModal
-              eventData={eventToEdit}
-              courses={courses}
-              onClose={() => { setShowEditEvent(false); setEventToEdit(null); }}
-            />
-          )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
-
-/* -------------------- CreateCourse -------------------- */
-function CreateCourse({ onClose, onCreated }) {
-  const [title, setTitle] = useState("");
-  const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { currentUser } = useAuth();
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!title || !currentUser) return alert("Missing required info.");
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "courses"), {
-        title,
-        code,
-        createdBy: currentUser.uid,
-        createdAt: serverTimestamp()
-      });
-      setTitle(""); setCode("");
-      if (onCreated) onCreated();
-    } catch (err) {
-      console.error(err);
-      alert("Error creating course.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={modalStyle}>
-      <div style={modalCardStyle}>
-        <h3>Create Course</h3>
-        <form onSubmit={handleCreate}>
-          <div className="form-group">
-            <label>Course Title</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Course Code (optional)</label>
-            <input value={code} onChange={(e) => setCode(e.target.value)} />
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create"}</button>
-            <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- CreateCourseEvent -------------------- */
-function CreateCourseEvent({ teacher, courses, preselectedCourse, onClose }) {
-  const [name, setName] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [courseId, setCourseId] = useState(preselectedCourse?.id || "");
-  const [targetAudience, setTargetAudience] = useState("students");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (preselectedCourse) setCourseId(preselectedCourse.id);
-  }, [preselectedCourse]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!teacher) return alert("No teacher auth.");
-    if (!name || !date) return alert("Please fill name and date.");
-    if (!courseId) return alert("Select a course.");
-
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "events"), {
-        name,
-        date,
-        time,
-        courseId,
-        courseTitle: courses.find(c => c.id === courseId)?.title || "",
-        targetAudience,
-        createdBy: teacher.uid,
-        createdAt: serverTimestamp()
-      });
-      setName(""); setDate(""); setTime("");
-      if (onClose) onClose();
-    } catch (err) {
-      console.error(err);
-      alert("Failed creating event.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={modalStyle}>
-      <div style={modalCardStyle}>
-        <h3>Create Course Event</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Event Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label>Course</label>
-            <select value={courseId} onChange={(e) => setCourseId(e.target.value)} required>
-              <option value="">-- Select course --</option>
-              {courses.map(c => <option key={c.id} value={c.id}>{c.title} {c.code ? `(${c.code})` : ""}</option>)}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label>Time</label>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
-
-          <div className="form-group">
-            <label>Audience</label>
-            <select value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
-              <option value="students">Students</option>
-              <option value="both">Both (Students & Teachers)</option>
-            </select>
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create Event"}</button>
-            <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- EditEventModal -------------------- */
-function EditEventModal({ eventData, courses, onClose }) {
-  const [name, setName] = useState(eventData?.name || "");
-  const [date, setDate] = useState(eventData?.date || "");
-  const [time, setTime] = useState(eventData?.time || "");
-  const [courseId, setCourseId] = useState(eventData?.courseId || "");
-  const [targetAudience, setTargetAudience] = useState(eventData?.targetAudience || "students");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setName(eventData?.name || "");
-    setDate(eventData?.date || "");
-    setTime(eventData?.time || "");
-    setCourseId(eventData?.courseId || "");
-    setTargetAudience(eventData?.targetAudience || "students");
-  }, [eventData]);
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!eventData?.id) return alert("Invalid event");
-
-    setLoading(true);
-    try {
-      const ref = doc(db, "events", eventData.id);
-      await updateDoc(ref, {
-        name,
-        date,
-        time,
-        courseId,
-        courseTitle: courses.find(c => c.id === courseId)?.title || "",
-        targetAudience
-      });
-      onClose();
-    } catch (err) {
-      console.error("Update failed:", err);
-      alert("Failed to update event.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("Delete this event?")) return;
-    try {
-      const ref = doc(db, "events", eventData.id);
-      await deleteDoc(ref);
-      onClose();
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete event.");
-    }
-  };
-
-  return (
-    <div style={modalStyle}>
-      <div style={modalCardStyle}>
-        <h3>Edit Event</h3>
-
-        <form onSubmit={handleUpdate}>
-          <div className="form-group">
-            <label>Event Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label>Course</label>
-            <select value={courseId} onChange={(e) => setCourseId(e.target.value)}>
-              <option value="">-- No course --</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.title} {c.code ? `(${c.code})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-          </div>
-
-          <div className="form-group">
-            <label>Time</label>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
-
-          <div className="form-group">
-            <label>Audience</label>
-            <select value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
-              <option value="students">Students</option>
-              <option value="both">Both (Students & Teachers)</option>
-            </select>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button className="btn" type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
-            </button>
-
-            <button className="btn btn-secondary" type="button" onClick={onClose}>
-              Cancel
-            </button>
-
-            <button
-              className="btn"
-              type="button"
-              style={{ background: "#dc2626", color: "#fff", marginLeft: "auto" }}
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------- modal styles -------------------- */
-const modalStyle = {
-  position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "center",
-  background: "rgba(2,6,23,0.45)", zIndex: 1200
-};
-const modalCardStyle = {
-  width: 520, maxWidth: "94%", background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 20px 60px rgba(2,6,23,0.4)"
-};

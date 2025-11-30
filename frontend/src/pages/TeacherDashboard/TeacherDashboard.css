@@ -173,3 +173,26 @@
   .main-grid { grid-template-columns: 1fr; }
   .teacher-container { padding:20px; }
 }
+
+/* Update Course List Display for TeacherCourses.js */
+.course-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.course-list-grid .course-item {
+    margin-bottom: 0; /* Override the old margin */
+    padding: 15px;
+    flex-direction: column;
+    align-items: stretch;
+}
+.course-list-grid .course-item > div:first-child {
+    margin-bottom: 10px;
+}
+.course-list-grid .course-item > div:last-child {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
