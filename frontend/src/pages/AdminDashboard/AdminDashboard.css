@@ -1,198 +1,397 @@
 /* --- General Dashboard Container --- */
 .dashboard-container {
-    font-family: "Inter", sans-serif;
-    background-attachment: fixed;
+    font-family: 'Poppins', sans-serif;
     min-height: 100vh;
     display: flex;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.95)), url("../../sust-saheed-minar.jpg") no-repeat center center / cover;
+    flex-shrink: 0;
+}
+
+.sidebar-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+}
+
+.sidebar-nav {
+    display: flex;
     flex-direction: column;
-    color: #333;
+    gap: 1rem;
 }
 
-/* --- Header --- */
-.dashboard-header {
-    background: linear-gradient(135deg, #2563eb, #1e3a8a);
-    color: white;
-    padding: 20px 40px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.3s ease;
 }
 
-.centered-title {
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    transform: translateX(5px);
+}
+
+.nav-btn.active {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+    color: #60a5fa;
+    border-left: 3px solid #60a5fa;
+}
+
+.nav-btn.logout {
+    margin-top: auto;
+    color: #ef4444;
+}
+
+.nav-btn.logout:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+}
+
+/* --- Main Content --- */
+.dashboard-content {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.content-glass {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    padding: 3rem;
+    min-height: 100%;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Dashboard Welcome --- */
+.dashboard-welcome h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.dashboard-welcome p {
+    color: #94a3b8;
+    margin-bottom: 3rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: 16px;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.stat-card h3 {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
+.stat-card p {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.status-active {
+    color: #4ade80 !important;
+}
+
+/* --- Forms & Inputs --- */
+.event-step {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.event-step h3 {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    color: #fff;
     text-align: center;
-    width: 100%;
 }
 
-/* --- Navigation Bar --- */
-.dashboard-nav {
+.event-form {
     display: flex;
-    justify-content: center;
-    gap: 12px;
-    background: #ffffff;
-    padding: 15px;
-    border-bottom: 1px solid #e5e7eb;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+input,
+select {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #60a5fa;
+    background: rgba(15, 23, 42, 0.8);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
 /* --- Buttons --- */
 .btn {
-    background-color: #2563eb;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #fff;
-    padding: 10px 18px;
+    padding: 16px 32px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
+    font-weight: 600;
     cursor: pointer;
-    transition: 0.2s ease;
-    font-weight: 500;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
 }
 
 .btn:hover {
-    background-color: #1d4ed8;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
 .btn-secondary {
-    background-color: #e5e7eb;
-    color: #111827;
+    background: rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
 }
 
 .btn-secondary:hover {
-    background-color: #d1d5db;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
 }
 
-/* --- Main Content --- */
-.dashboard-main {
-    flex-grow: 1;
-    padding: 40px 20px;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-/* --- New White Card for Home & See All Events --- */
-.page-card {
-    background: #ffffff;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-/* --- Event Step --- */
-.event-step {
-    text-align: center;
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.event-step h3 {
-    color: #1e3a8a;
-    margin-bottom: 20px;
-}
-
-/* --- Form --- */
-.event-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.form-group {
-    text-align: left;
-}
-
-.form-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: #374151;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #d1d5db;
-    font-size: 15px;
-}
-
-.form-group input:focus {
-    border-color: #2563eb;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-}
-
-/* --- Submit Message --- */
+/* --- Messages --- */
 .submit-message {
-    margin-top: 10px;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
     font-weight: 500;
-    color: #2563eb;
 }
 
-/* --- Event List --- */
-.event-list-container {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+.submit-message.success {
+    background: rgba(74, 222, 128, 0.1);
+    color: #4ade80;
 }
 
-.event-list {
-    list-style: none;
-    padding: 0;
-    margin-top: 15px;
+.submit-message.error {
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
 }
 
-.event-item {
-    background: #f3f4f6;
-    margin-bottom: 12px;
-    padding: 12px 15px;
-    border-radius: 10px;
-    transition: 0.2s;
+/* --- New Audience Selection Design --- */
+.audience-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
 }
 
-.event-item:hover {
-    background: #e5e7eb;
-    transform: translateY(-2px);
+.audience-option-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
 }
 
-.target-audience {
-    color: #2563eb;
+.audience-option-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.option-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.audience-option-card:hover .option-icon {
+    transform: scale(1.2) rotate(10deg);
+}
+
+.audience-option-card h4 {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.audience-option-card p {
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+/* Specific Option Colors */
+.audience-option-card.student:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.15));
+    border-color: #60a5fa;
+}
+
+.audience-option-card.teacher:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.15));
+    border-color: #fbbf24;
+}
+
+.audience-option-card.both:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.15));
+    border-color: #34d399;
+}
+
+/* --- Modern Event Cards --- */
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.event-card-modern {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.event-card-modern:hover {
+    transform: translateY(-5px);
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+.event-card-modern h4 {
+    font-size: 1.3rem;
+    color: #fff;
+    margin: 1rem 0 0.5rem 0;
     font-weight: 600;
 }
 
-.timestamp {
-    display: block;
-    font-size: 13px;
-    color: #6b7280;
-    margin-top: 4px;
+.event-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* --- Error Message --- */
-.error-message {
-    color: #dc2626;
-    background: #fee2e2;
-    padding: 10px;
-    border-radius: 8px;
+.event-badge.student {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.event-badge.teacher {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.event-badge.both {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.event-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.no-events {
     text-align: center;
+    padding: 3rem;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
 /* --- Responsive --- */
-@media (max-width: 600px) {
-    .dashboard-nav {
+@media (max-width: 768px) {
+    .dashboard-container {
         flex-direction: column;
-        align-items: center;
     }
 
-    .btn {
-        width: 80%;
+    .dashboard-sidebar {
+        width: 100%;
+        padding: 1rem;
     }
 
-    .dashboard-main {
-        padding: 20px 10px;
+    .sidebar-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .nav-btn {
+        white-space: nowrap;
+    }
+
+    .content-glass {
+        padding: 1.5rem;
     }
 }

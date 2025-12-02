@@ -61,10 +61,22 @@ export default function CreateEvent({ db }) {
         return (
             <div className="event-step">
                 <h3>Step 1: Who is this event for?</h3>
-                <div className="nav-buttons">
-                    <button className="btn" onClick={() => handleTypeSelect("student")}>For Students</button>
-                    <button className="btn" onClick={() => handleTypeSelect("teacher")}>For Teachers</button>
-                    <button className="btn" onClick={() => handleTypeSelect("both")}>For Both</button>
+                <div className="audience-grid">
+                    <div className="audience-card student" onClick={() => handleTypeSelect("student")}>
+                        <div className="card-icon">🎓</div>
+                        <h4>For Students</h4>
+                        <p>Create events specifically for students.</p>
+                    </div>
+                    <div className="audience-card teacher" onClick={() => handleTypeSelect("teacher")}>
+                        <div className="card-icon">👨‍🏫</div>
+                        <h4>For Teachers</h4>
+                        <p>Schedule meetings or events for faculty.</p>
+                    </div>
+                    <div className="audience-card both" onClick={() => handleTypeSelect("both")}>
+                        <div className="card-icon">🏫</div>
+                        <h4>For Both</h4>
+                        <p>General events for everyone on campus.</p>
+                    </div>
                 </div>
             </div>
         );
