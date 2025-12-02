@@ -4,7 +4,7 @@ import Calendar from "react-calendar";
 export default function TeacherCalendar({ events, onEditEvent }) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedDayEvents, setSelectedDayEvents] = useState([]);
-    
+
     // Update selected day events
     useEffect(() => {
         const formatted = selectedDate.toISOString().split("T")[0];
@@ -21,7 +21,7 @@ export default function TeacherCalendar({ events, onEditEvent }) {
     };
 
     return (
-        <div className="main-grid">
+        <div className="main-grid-single">
             {/* --- Calendar / Daily Events --- */}
             <div className="calendar-box">
                 <div className="panel-header">
@@ -59,36 +59,6 @@ export default function TeacherCalendar({ events, onEditEvent }) {
                             </ul>
                         )}
                     </div>
-                </div>
-            </div>
-
-            {/* --- Recent Events --- */}
-            <div className="side-panel">
-                <div className="panel">
-                    <h4>Recent/Upcoming Events 🗓️</h4>
-                    {events.length === 0 ? <p className="no-items">No events yet.</p> : (
-                        <ul className="event-list">
-                            {events.slice(0, 10).map(ev => (
-                                <li key={ev.id} className="event-card event-card-compact">
-                                    <div style={{ flexGrow: 1 }}>
-                                        <strong>{ev.name}</strong>
-                                        <small className="event-meta">
-                                            {ev.courseTitle ? `Course: ${ev.courseTitle}` : `Admin • ${ev.targetAudience}`}
-                                        </small>
-                                    </div>
-                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                                        <span className="event-meta">{ev.date} {ev.time || ""}</span>
-                                        <button
-                                            className="btn btn-secondary btn-small"
-                                            onClick={() => onEditEvent(ev)}
-                                        >
-                                            Manage
-                                        </button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
                 </div>
             </div>
         </div>

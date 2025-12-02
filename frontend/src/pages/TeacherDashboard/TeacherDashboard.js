@@ -5,12 +5,13 @@ import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/fire
 import { useAuth } from "../../context/AuthContext";
 
 // Import Modular Components
+import TeacherEvents from "./TeacherEvents";
 import TeacherProfile from "./TeacherProfile";
 import TeacherCourses from "./TeacherCourses";
 import TeacherCalendar from "./TeacherCalendar";
 import ManageCourses from "./ManageCourses";
 import CreateCourseModal from "./CreateCourseModal";
-import CreateCourseEventModal from "./CreateCourseEventModal"; 
+import CreateCourseEventModal from "./CreateCourseEventModal";
 // Note: CreateCourseEventModal also handles editing/deleting events if passed eventData
 
 import "./TeacherDashboard.css"; // Styles are still here
@@ -18,17 +19,15 @@ import "./TeacherDashboard.css"; // Styles are still here
 export default function TeacherDashboard() {
     const navigate = useNavigate();
     const { currentUser, loading } = useAuth();
-    
+
     // Core State
     const [role, setRole] = useState(null);
     const [roleLoaded, setRoleLoaded] = useState(false);
     const [courses, setCourses] = useState([]);
     const [events, setEvents] = useState([]);
-    
+
     // UI State
     const [view, setView] = useState("calendar"); // Default view: Calendar
-    const [showCreateCourse, setShowCreateCourse] = useState(false);
-    const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [eventToEdit, setEventToEdit] = useState(null); // For editing events globally
     const [selectedCourseForEvent, setSelectedCourseForEvent] = useState(null);
 
@@ -107,15 +106,15 @@ export default function TeacherDashboard() {
     const handleQuickCreateEvent = (course = null) => {
         setSelectedCourseForEvent(course);
         setEventToEdit(null); // Ensure we are in create mode
-        setShowCreateEvent(true);
+        setView("create-event");
     };
 
     const handleEditEvent = (event) => {
         setEventToEdit(event);
         setSelectedCourseForEvent(null);
-        setShowCreateEvent(true);
+        setView("create-event");
     }
-    
+
     // --- Render Loading/Error ---
     if (loading || !roleLoaded || !currentUser) {
         return <div className="loading-state">Loading Dashboard...</div>;
@@ -130,6 +129,9 @@ export default function TeacherDashboard() {
             break;
         case "courses":
             ComponentToRender = <TeacherCourses courses={courses} onManageCourse={handleViewCourse} onQuickCreateEvent={handleQuickCreateEvent} />;
+            break;
+        case "events":
+            ComponentToRender = <TeacherEvents events={events} onEditEvent={handleEditEvent} />;
             break;
         case "profile":
             ComponentToRender = <TeacherProfile teacher={currentUser} courses={courses} role={role} />;
@@ -150,6 +152,27 @@ export default function TeacherDashboard() {
             ComponentToRender = <TeacherCourses courses={courses} onManageCourse={handleViewCourse} onQuickCreateEvent={handleQuickCreateEvent} />;
             setView("courses"); // Redirect back if somehow manage view is hit without a course
             break;
+        case "create-course":
+            return (
+                <CreateCourseModal
+                    teacher={currentUser}
+                    onClose={() => setView("courses")}
+                />
+            );
+        case "create-event":
+            return (
+                <CreateCourseEventModal
+                    teacher={currentUser}
+                    courses={courses}
+                    preselectedCourse={selectedCourseForEvent}
+                    eventData={eventToEdit} // Pass event data if editing
+                    onClose={() => {
+                        setView("calendar"); // Or events, or wherever makes sense
+                        setSelectedCourseForEvent(null);
+                        setEventToEdit(null);
+                    }}
+                />
+            );
         default:
             ComponentToRender = <TeacherCalendar events={events} onEditEvent={handleEditEvent} />;
             setView("calendar"); // Default to calendar
@@ -167,42 +190,18 @@ export default function TeacherDashboard() {
                         </div>
                     </div>
                     <div className="teacher-actions">
-                        <button className={`btn ${view === "calendar" ? "btn-primary" : "btn-secondary"}`} onClick={() => setView("calendar")}>View Calendar</button>
-                        <button className={`btn ${view === "courses" ? "btn-primary" : "btn-secondary"}`} onClick={() => setView("courses")}>My Courses</button>
-                        <button className={`btn ${view === "profile" ? "btn-primary" : "btn-secondary"}`} onClick={() => setView("profile")}>My Profile</button>
-                        <button className="btn" onClick={() => setShowCreateCourse(true)}>+ Create Course</button>
-                        <button className="btn" onClick={() => handleQuickCreateEvent()}>+ Create Event</button>
+                        <button className={`btn ${view === "calendar" ? "btn-active" : ""}`} onClick={() => setView("calendar")}>View Calendar</button>
+                        <button className={`btn ${view === "courses" ? "btn-active" : ""}`} onClick={() => setView("courses")}>My Courses</button>
+                        <button className={`btn ${view === "events" ? "btn-active" : ""}`} onClick={() => setView("events")}>Recent/Upcoming Events</button>
+                        <button className={`btn ${view === "create-course" ? "btn-active" : ""}`} onClick={() => setView("create-course")}>Create Course</button>
+                        <button className={`btn ${view === "create-event" ? "btn-active" : ""}`} onClick={() => handleQuickCreateEvent()}>Create Event</button>
+                        <button className={`btn ${view === "profile" ? "btn-active" : ""}`} onClick={() => setView("profile")}>My Profile</button>
                     </div>
                 </div>
 
                 <div className="dashboard-content">
                     {ComponentToRender}
                 </div>
-
-                {/* --- Modals (Global) --- */}
-                
-                {/* 1. Create Course Modal */}
-                {showCreateCourse && (
-                    <CreateCourseModal
-                        teacher={currentUser}
-                        onClose={() => setShowCreateCourse(false)}
-                    />
-                )}
-
-                {/* 2. Create/Edit Event Modal */}
-                {showCreateEvent && (
-                    <CreateCourseEventModal
-                        teacher={currentUser}
-                        courses={courses}
-                        preselectedCourse={selectedCourseForEvent}
-                        eventData={eventToEdit} // Pass event data if editing
-                        onClose={() => { 
-                            setShowCreateEvent(false); 
-                            setSelectedCourseForEvent(null); 
-                            setEventToEdit(null); 
-                        }}
-                    />
-                )}
             </div>
         </div>
     );
