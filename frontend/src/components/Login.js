@@ -82,7 +82,7 @@ export default function Login() {
 
         <div className="secondary-action">
           <span>Need an account?</span>
-          <button className="btn signup alt-signup" onClick={() => navigate(`/signup?role=${role}`)}>
+          <button className="btn red-signup-btn" onClick={() => navigate(`/signup?role=${role}`)}>
             Sign up here
           </button>
         </div>

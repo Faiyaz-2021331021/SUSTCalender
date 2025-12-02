@@ -6,7 +6,6 @@ import {
     Timestamp,
     onSnapshot
 } from "firebase/firestore";
-import backgroundImage from "../../sust-saheed-minar.jpg";
 
 import "./AdminDashboard.css";
 
@@ -14,45 +13,60 @@ import "./AdminDashboard.css";
 export default function AdminDashboard({ db }) {
     const [page, setPage] = useState("main");
     const navigate = useNavigate();
-    const backgroundStyle = {
-        backgroundImage: `linear-gradient(120deg, rgba(7, 17, 40, 0.45), rgba(3, 8, 20, 0.35)), url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed"
-    };
 
     return (
-        <div className="dashboard-container" style={backgroundStyle}>
-            <header className="dashboard-header">
-                <h2 className="centered-title">Admin Dashboard</h2>
-            </header>
+        <div className="dashboard-container">
+            <aside className="dashboard-sidebar">
+                <div className="sidebar-header">
+                    <h2>Admin Portal</h2>
+                </div>
+                <nav className="sidebar-nav">
+                    <button
+                        className={`nav-btn ${page === "main" ? "active" : ""}`}
+                        onClick={() => setPage("main")}
+                    >
+                        Dashboard Home
+                    </button>
+                    <button
+                        className={`nav-btn ${page === "create" ? "active" : ""}`}
+                        onClick={() => setPage("create")}
+                    >
+                        Create Event
+                    </button>
+                    <button
+                        className={`nav-btn ${page === "see" ? "active" : ""}`}
+                        onClick={() => setPage("see")}
+                    >
+                        All Events
+                    </button>
+                    <button className="nav-btn logout" onClick={() => navigate("/")}>
+                        Logout
+                    </button>
+                </nav>
+            </aside>
 
-            <nav className="dashboard-nav">
-                <button className="btn" onClick={() => setPage("main")}>Home</button>
-                <button className="btn" onClick={() => setPage("create")}>Create Event</button>
-                <button className="btn" onClick={() => setPage("see")}>See All Events</button>
-            </nav>
+            <main className="dashboard-content">
+                <div className="content-glass">
+                    {page === "main" && (
+                        <div className="dashboard-welcome">
+                            <h1>Welcome Back, Admin</h1>
+                            <p>Manage your university events and schedules efficiently.</p>
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <h3>Events Created</h3>
+                                    <p>Check "All Events"</p>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>System Status</h3>
+                                    <p className="status-active">Active</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-            <main className="dashboard-main">
-                {page === "main" && (
-                    <div className="page-card">
-                        <h3>Welcome Admin</h3>
-                        <p>Select an action above.</p>
-                    </div>
-                )}
-
-                {page === "create" && (
-                    <div className="page-card">
-                        <CreateEvent db={db} />
-                    </div>
-                )}
-
-                {page === "see" && (
-                    <div className="page-card">
-                        <SeeAllEvents db={db} />
-                    </div>
-                )}
+                    {page === "create" && <CreateEvent db={db} />}
+                    {page === "see" && <SeeAllEvents db={db} />}
+                </div>
             </main>
         </div>
     );
@@ -101,9 +115,23 @@ function CreateEvent({ db }) {
         return (
             <div className="event-step">
                 <h3>Select Audience</h3>
-                <button className="btn" onClick={() => { setEventType("student"); setStep(2); }}>Student</button>
-                <button className="btn" onClick={() => { setEventType("teacher"); setStep(2); }}>Teacher</button>
-                <button className="btn" onClick={() => { setEventType("both"); setStep(2); }}>Both</button>
+                <div className="audience-selection-grid">
+                    <div className="audience-option-card student" onClick={() => { setEventType("student"); setStep(2); }}>
+                        <div className="option-icon">🎓</div>
+                        <h4>Students</h4>
+                        <p>For student-only events</p>
+                    </div>
+                    <div className="audience-option-card teacher" onClick={() => { setEventType("teacher"); setStep(2); }}>
+                        <div className="option-icon">👨‍🏫</div>
+                        <h4>Teachers</h4>
+                        <p>For faculty meetings</p>
+                    </div>
+                    <div className="audience-option-card both" onClick={() => { setEventType("both"); setStep(2); }}>
+                        <div className="option-icon">🏫</div>
+                        <h4>Both</h4>
+                        <p>For general campus events</p>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -115,13 +143,13 @@ function CreateEvent({ db }) {
 
             <form onSubmit={handleSubmit} className="event-form">
                 <input type="text" placeholder="Event Name" value={eventName}
-                       onChange={(e) => setEventName(e.target.value)} required />
+                    onChange={(e) => setEventName(e.target.value)} required />
 
                 <input type="date" value={eventDate}
-                       onChange={(e) => setEventDate(e.target.value)} required />
+                    onChange={(e) => setEventDate(e.target.value)} required />
 
                 <input type="time" value={eventTime}
-                       onChange={(e) => setEventTime(e.target.value)} required />
+                    onChange={(e) => setEventTime(e.target.value)} required />
 
                 <button className="btn" disabled={loading}>
                     {loading ? "Creating..." : "Create Event"}
@@ -148,13 +176,28 @@ function SeeAllEvents({ db }) {
     return (
         <div>
             <h3>All Events</h3>
-            <ul>
-                {events.map(e => (
-                    <li key={e.id}>
-                        <b>{e.name}</b> — {e.date} @ {e.time} — For: {e.targetAudience}
-                    </li>
-                ))}
-            </ul>
+            {events.length === 0 ? (
+                <div className="no-events">
+                    <p>No events found. Create one to get started!</p>
+                </div>
+            ) : (
+                <div className="events-grid">
+                    {events.map(e => (
+                        <div key={e.id} className="event-card-modern">
+                            <div className={`event-badge ${e.targetAudience}`}>
+                                {e.targetAudience === 'student' && '🎓 Student'}
+                                {e.targetAudience === 'teacher' && '👨‍🏫 Teacher'}
+                                {e.targetAudience === 'both' && '🏫 Campus Wide'}
+                            </div>
+                            <h4>{e.name}</h4>
+                            <div className="event-meta">
+                                <span>📅 {e.date}</span>
+                                <span>⏰ {e.time}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
