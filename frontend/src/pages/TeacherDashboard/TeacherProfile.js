@@ -1,603 +1,416 @@
 import React, { useState, useEffect } from 'react';
-
 import { doc, getDoc, setDoc } from "firebase/firestore";
-
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useNavigate } from "react-router-dom";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth"; 
 
-// 🔑 IMPORTANT: We need these for re-authentication
+import { db, storage } from "../../firebase"; 
+import { useAuth } from "../../context/AuthContext"; 
+// Assuming the necessary CSS is imported or globally available
 
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-
-
-
-import { db, storage } from "../../firebase";
-
-import { useAuth } from "../../context/AuthContext";
-
-
-
-
-
-const modalStyle = {
-
-    padding: 20,
-
-    borderRadius: 12,
-
-    background: '#f8fafc',
-
-    boxShadow: '0 4px 12px rgba(15,23,42,0.1)',
-
-    border: '1px solid #e2e8f0'
-
-};
-
-
+// --- FALLBACKS & STYLES ---
 
 const fallbackProfile = {
-
+    teacherId: "",
+    department: "",
     phone: "",
-
     address: "",
-
     bloodGroup: "O+",
-
     photoURL: ""
-
 };
 
-
-
-export default function TeacherProfile({ teacher, courses, role }) {
-
-    const { currentUser } = useAuth(); // Assume this provides the user object
-
-   
-
-    const initialName = teacher?.email.split('@')[0] || "Teacher";
-
-
+export default function TeacherProfile({ teacher, courses = [], role = "Teacher" }) {
+    const navigate = useNavigate();
+    const { currentUser } = useAuth(); 
+    
+    const initialName = currentUser?.email.split('@')[0] || "Teacher";
 
     const [isEditing, setIsEditing] = useState(false);
-
     const [form, setForm] = useState(fallbackProfile);
-
-    const [nameOverride, setNameOverride] = useState(initialName);
-
+    const [nameOverride, setNameOverride] = useState(initialName); 
+    const [profile, setProfile] = useState({ name: initialName, email: teacher?.email || "N/A", ...fallbackProfile, role }); 
+    
     const [photoFile, setPhotoFile] = useState(null);
-
     const [saving, setSaving] = useState(false);
-
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(true);
 
-   
-
-    // 🔑 NEW STATES FOR PASSWORD HANDLING
-
-    const [newPassword, setNewPassword] = useState('');
-
-    const [currentPassword, setCurrentPassword] = useState(''); // To capture old password for re-auth
-
-
+    const [newPassword, setNewPassword] = useState(''); 
+    const [currentPassword, setCurrentPassword] = useState(''); 
 
     // --- 1. FETCH DATA ON LOAD ---
-
     useEffect(() => {
-
-        // ... (existing loadProfileData logic remains the same)
-
         async function loadProfileData() {
-
+            setLoading(true);
             if (!currentUser || !currentUser.uid) {
-
-                console.log("No authenticated user found for data fetch.");
-
+                setLoading(false);
                 return;
-
             }
-
-           
-
+            
             try {
-
                 const userRef = doc(db, "users", currentUser.uid);
-
                 const snap = await getDoc(userRef);
-
-
+                const email = currentUser.email || teacher?.email || "N/A";
+                let currentName = initialName;
+                let currentData = {};
 
                 if (snap.exists()) {
-
-                    const data = snap.data();
-
-                   
-
+                    currentData = snap.data();
+                    currentName = currentData.name || initialName;
+                    
+                    // Set form state for editing
                     setForm({
-
-                        phone: data.phone || "",
-
-                        address: data.address || "",
-
-                        bloodGroup: data.bloodGroup || "O+",
-
-                        photoURL: data.photoURL || ""
-
+                        teacherId: currentData.teacherId || "",
+                        department: currentData.department || "",
+                        phone: currentData.phone || "",
+                        address: currentData.address || "",
+                        bloodGroup: currentData.bloodGroup || "O+",
+                        photoURL: currentData.photoURL || ""
                     });
-
-                    setNameOverride(data.name || initialName);
-
                 } else {
-
-                    setNameOverride(initialName);
-
                     setForm(fallbackProfile);
-
                 }
 
+                // Set display profile state
+                setProfile({
+                    name: currentName,
+                    email: email,
+                    role: currentData.role || role,
+                    coursesTaught: courses.length,
+                    teacherId: currentData.teacherId || "N/A",
+                    department: currentData.department || "N/A",
+                    phone: currentData.phone || "N/A",
+                    address: currentData.address || "N/A",
+                    bloodGroup: currentData.bloodGroup || "O+",
+                    photoURL: currentData.photoURL || ""
+                });
+                
+                setNameOverride(currentName);
             } catch (err) {
-
                 console.error("Profile fetch failed:", err);
-
+            } finally {
+                setLoading(false);
             }
-
         }
-
-       
-
+        
         loadProfileData();
-
-    }, [currentUser, teacher, initialName]);
-
-   
-
-
-
-    const profileData = {
-
-        name: nameOverride,
-
-        email: teacher?.email || "N/A",
-
-        role: role,
-
-        coursesTaught: courses.length,
-
-        phone: form.phone || "N/A",
-
-        address: form.address || "N/A",
-
-        bloodGroup: form.bloodGroup,
-
-        photoURL: form.photoURL
-
-    };
-
-
+    }, [currentUser, initialName, role, courses.length, teacher?.email]); 
+    
+    // Calculate initials for avatar fallback
+    const initials = (profile.name || initialName)
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
 
     const handleChange = (e) => {
-
         const { name, value, files } = e.target;
-
         if (name === "photo" && files) {
-
             setPhotoFile(files[0]);
-
         } else if (name === "name") {
-
-            setNameOverride(value);
-
-        } else if (name === "newPassword") { // 🔑 Use a distinct name for the new password input
-
+            setNameOverride(value); 
+        } else if (name === "newPassword") { 
             setNewPassword(value);
-
-        } else if (name === "currentPassword") { // 🔑 Handle current password
-
+        } else if (name === "currentPassword") { 
             setCurrentPassword(value);
-
         } else {
-
             setForm(prev => ({ ...prev, [name]: value }));
-
         }
-
     };
 
-
-
-    // --- 2. SAVE DATA TO FIREBASE (Updated for Re-authentication) ---
-
+    // --- 2. SAVE DATA TO FIREBASE ---
     const handleSubmit = async (e) => {
-
         e.preventDefault();
-
         if (!currentUser || !currentUser.uid) {
-
             setMessage("Error: User not logged in. Cannot save.");
-
             return;
-
         }
-
-
 
         setSaving(true);
-
         setMessage("");
-
         let updatedPhotoURL = form.photoURL;
 
-
-
         try {
-
             // --- A. Handle Password Update (Auth change) ---
-
             if (newPassword) {
-
                 if (!currentPassword) {
-
                     throw new Error("You must enter your current password to set a new one.");
-
                 }
-
                 if (newPassword.length < 6) {
-
                      throw new Error("New password must be at least 6 characters long.");
-
                 }
-
-
-
-                // 🔑 STEP 1: Create a credential with the user's email and CURRENT password
 
                 const credential = EmailAuthProvider.credential(
-
                     currentUser.email,
-
                     currentPassword
-
                 );
 
-
-
-                // 🔑 STEP 2: Re-authenticate the user immediately before the sensitive action
-
                 await reauthenticateWithCredential(currentUser, credential);
-
-               
-
-                // 🔑 STEP 3: Now the session is fresh, update the password
-
                 await updatePassword(currentUser, newPassword);
-
             }
-
-           
-
+            
             // --- B. Handle Photo Upload ---
-
             if (photoFile) {
-
                 const storageRef = ref(storage, `teacherProfilePhotos/${currentUser.uid}/${photoFile.name}`);
-
                 await uploadBytes(storageRef, photoFile);
-
                 updatedPhotoURL = await getDownloadURL(storageRef);
-
             }
-
-           
-
+            
             // --- C. Save Data to Firestore (Profile change) ---
-
             await setDoc(doc(db, "users", currentUser.uid), {
-
                 ...form,
-
                 name: nameOverride,
-
-                email: teacher?.email,
-
+                email: currentUser.email,
                 role: role,
-
-                photoURL: updatedPhotoURL
-
+                photoURL: updatedPhotoURL 
             }, { merge: true });
 
-
-
             // 4. Update local state and UI
-
             setForm(prev => ({ ...prev, photoURL: updatedPhotoURL }));
+            // Update display profile
+            setProfile(prev => ({ 
+                ...prev, 
+                ...form, 
+                name: nameOverride, 
+                photoURL: updatedPhotoURL,
+            })); 
 
-            setPhotoFile(null);
-
-            setCurrentPassword(''); // Clear sensitive inputs
-
-            setNewPassword('');
-
-            setMessage("Profile and password updated successfully!");
-
+            setPhotoFile(null); 
+            setCurrentPassword('');
+            setNewPassword(''); 
+            setMessage("Profile, photo, and password updated successfully!");
             setIsEditing(false);
 
-
-
         } catch (err) {
-
             console.error("Profile save failed:", err);
-
-            // Handle common re-auth errors (e.g., wrong current password)
-
             if (err.code === 'auth/wrong-password') {
-
                  setMessage("Incorrect current password. Please try again.");
-
             } else if (err.code === 'auth/user-mismatch') {
-
                  setMessage("Error: User mismatch during re-authentication.");
-
             } else {
-
                 setMessage(`Could not save profile: ${err.message || 'Unknown error'}`);
-
             }
-
         } finally {
-
             setSaving(false);
-
         }
-
     };
 
+    // --- 3. RENDER LOGIC (New StudentProfile Style) ---
 
+    if (loading) {
+        return (
+            <div className="student-section">
+                <p style={{ textAlign: "center", color: "#475569" }}>Loading profile...</p>
+            </div>
+        );
+    }
 
     return (
-
-        <div className="main-grid" style={{ gridTemplateColumns: '1fr' }}>
-
-            <div className="panel" style={modalStyle}>
-
-                <h4>My Profile Details 👤</h4>
-
-                <div style={{ marginBottom: 15 }}>
-
-                    {/* ... (Display details section remains the same) ... */}
-
-                    <p><strong>Name:</strong> {profileData.name}</p>
-
-                    <p><strong>Email:</strong> {profileData.email}</p>
-
-                    <p><strong>Role:</strong> {profileData.role}</p>
-
-                    <p><strong>Courses Taught:</strong> {profileData.coursesTaught}</p>
-
-                    <p><strong>Contact Number:</strong> {profileData.phone}</p>
-
-                    <p><strong>Address:</strong> {profileData.address}</p>
-
-                    <p><strong>Blood Group:</strong> {profileData.bloodGroup}</p>
-
-                    <p><strong>Photo:</strong> {profileData.photoURL ?
-
-                        <a href={profileData.photoURL} target="_blank" rel="noopener noreferrer">View Photo</a> : "None"}
-
-                    </p>
-
-                   
-
-                    {isEditing && (
-
-                        <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
-
-                            <h5>Edit Account Information</h5>
-
-
-
-                            <div className="form-group">
-
-                                <label>Name</label>
-
-                                <input
-
-                                    name="name"
-
-                                    placeholder="Enter new name"
-
-                                    value={nameOverride}
-
-                                    onChange={handleChange}
-
-                                />
-
-                            </div>
-
-                           
-
-                            {/* 🔑 NEW FIELD: Current Password */}
-
-                            <div className="form-group">
-
-                                <label>Current Password (Required for any changes)</label>
-
-                                <input
-
-                                    type="password"
-
-                                    name="currentPassword"
-
-                                    value={currentPassword}
-
-                                    onChange={handleChange}
-
-                                    placeholder="Enter current password"
-
-                                    autoComplete="current-password"
-
-                                />
-
-                            </div>
-
-
-
-                            {/* 🔑 Modified Field: New Password */}
-
-                            <div className="form-group">
-
-                                <label>New Password</label>
-
-                                <input
-
-                                    type="password"
-
-                                    name="newPassword"
-
-                                    value={newPassword}
-
-                                    onChange={handleChange}
-
-                                    placeholder="Leave blank to keep current (min 6 chars)"
-
-                                    autoComplete="new-password"
-
-                                />
-
-                            </div>
-
-                           
-
-                            <div className="form-group">
-
-                                <label>Contact Number</label>
-
-                                <input
-
-                                    type="tel"
-
-                                    name="phone"
-
-                                    value={form.phone}
-
-                                    onChange={handleChange}
-
-                                    placeholder="Enter contact number"
-
-                                />
-
-                            </div>
-
-
-
-                            <div className="form-group">
-
-                                <label>Address</label>
-
-                                <textarea
-
-                                    name="address"
-
-                                    value={form.address}
-
-                                    onChange={handleChange}
-
-                                    rows="3"
-
-                                    placeholder="Enter full address"
-
-                                />
-
-                            </div>
-
-
-
-                            <div className="form-group">
-
-                                <label>Blood Group</label>
-
-                                <select
-
-                                    name="bloodGroup"
-
-                                    value={form.bloodGroup}
-
-                                    onChange={handleChange}
-
-                                >
-
-                                    {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(bg => (
-
-                                        <option key={bg} value={bg}>{bg}</option>
-
-                                    ))}
-
-                                </select>
-
-                            </div>
-
-
-
-                            <div className="form-group">
-
-                                <label>Upload Photo</label>
-
-                                <input
-
-                                    type="file"
-
-                                    accept="image/*"
-
-                                    name="photo"
-
-                                    onChange={handleChange}
-
-                                />
-
-                                {photoFile && <small>Selected: **{photoFile.name}**</small>}
-
-                                {form.photoURL && !photoFile && <small>Current photo on file.</small>}
-
-                            </div>
-
-
-
-                            <button type="submit" className="btn" disabled={saving} style={{ marginRight: 10 }}>
-
-                                {saving ? "Saving..." : "Save Profile"}
-
-                            </button>
-
-                            {message && <p style={{ marginTop: "10px", color: saving ? 'orange' : '#0f172a', fontWeight: 600 }}>{message}</p>}
-
-                        </form>
-
-                    )}
-
+        <div className="student-section"> 
+            <div className="section-header">
+                <div style={{ flex: 1 }}>
+                    <h1>{isEditing ? "Edit Profile" : "My Profile"}</h1>
+                    <p>{isEditing ? "Update your personal details and password." : "Review your teacher details."}</p>
                 </div>
-
-
-
-                <button className="btn btn-secondary" onClick={() => {
-
-                    setIsEditing(!isEditing);
-
-                    setMessage("");
-
-                    setSaving(false);
-
-                    setCurrentPassword(''); // Clear on cancel
-
-                    setNewPassword(''); // Clear on cancel
-
-                }}>
-
-                    {isEditing ? "Cancel Edit" : "Edit Profile"}
-
-                </button>
-
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <button className="close-btn" onClick={() => navigate("/teacher-dashboard")}>✕</button> 
+                </div>
+            </div>
+            
+            <div className="profile-hero">
+                <div className="avatar-wrap">
+                    {profile.photoURL ? (
+                        <img src={profile.photoURL} alt="Profile" />
+                    ) : (
+                        <span className="avatar-initials">{initials}</span>
+                    )}
+                </div>
+                <div className="profile-name">{profile.name}</div>
+                <div className="profile-email">{profile.email}</div>
+                <div className="profile-role" style={{ fontSize: '0.9em', color: '#64748b' }}>Role: {profile.role}</div> 
             </div>
 
+            {/* --- DISPLAY MODE --- */}
+            {!isEditing && (
+                <>
+                    <div className="profile-grid vertical">
+                        <div className="profile-item vibrant"><strong>Teacher ID</strong><span>{profile.teacherId}</span></div> 
+                        <div className="profile-item vibrant"><strong>Department</strong><span>{profile.department}</span></div> 
+                        <div className="profile-item vibrant"><strong>Courses Taught</strong><span>{profile.coursesTaught}</span></div>
+                        <div className="profile-item vibrant"><strong>Contact Number</strong><span>{profile.phone}</span></div>
+                        <div className="profile-item vibrant"><strong>Address</strong><span>{profile.address}</span></div>
+                        <div className="profile-item vibrant"><strong>Blood Group</strong><span>{profile.bloodGroup}</span></div>
+                    </div>
+                    <div style={{ marginTop: "20px", textAlign: "center" }}>
+                        <button 
+                            className="dashboard-home" 
+                            onClick={() => {
+                                setIsEditing(true);
+                                setMessage("");
+                                // Pre-fill name and form fields for editing
+                                setNameOverride(profile.name); 
+                                setForm({
+                                    teacherId: profile.teacherId === "N/A" ? "" : profile.teacherId,
+                                    department: profile.department === "N/A" ? "" : profile.department,
+                                    phone: profile.phone === "N/A" ? "" : profile.phone,
+                                    address: profile.address === "N/A" ? "" : profile.address,
+                                    bloodGroup: profile.bloodGroup || "O+",
+                                    photoURL: profile.photoURL || ""
+                                });
+                            }}
+                        >
+                            Edit Profile
+                        </button>
+                    </div>
+                </>
+            )}
+
+            {/* --- EDITING MODE --- */}
+            {isEditing && (
+                <form className="section-grid" onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+                    
+                    {/* NAME FIELD */}
+                    <div className="section-card" style={{ gridColumn: "1 / -1" }}>
+                        <label><strong>Name</strong></label>
+                        <input 
+                            type="text"
+                            name="name"
+                            value={nameOverride}
+                            onChange={handleChange}
+                            className="input-field"
+                            placeholder="Enter your full name"
+                        />
+                    </div>
+                    
+                    {/* Teacher ID Field */}
+                    <div className="section-card">
+                        <label><strong>Teacher ID</strong></label>
+                        <input
+                            type="text"
+                            name="teacherId"
+                            value={form.teacherId}
+                            onChange={handleChange}
+                            className="input-field"
+                            placeholder="Enter Teacher ID"
+                        />
+                    </div>
+                    
+                    {/* Department Field */}
+                    <div className="section-card">
+                        <label><strong>Department</strong></label>
+                        <input
+                            type="text"
+                            name="department"
+                            value={form.department}
+                            onChange={handleChange}
+                            className="input-field"
+                            placeholder="Enter Department"
+                        />
+                    </div>
+
+                    {/* Contact, Address, Blood Group */}
+                    <div className="section-card">
+                        <label><strong>Contact Number</strong></label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={form.phone}
+                            onChange={handleChange}
+                            className="input-field"
+                            placeholder="Enter Contact Number"
+                        />
+                    </div>
+
+                    <div className="section-card">
+                        <label><strong>Address</strong></label>
+                        {/* 🔑 FIX: Added style={{ backgroundColor: '#f1f5f9' }} to force the grey background if CSS isn't overriding the default textarea white background */}
+                        <textarea
+                            name="address"
+                            value={form.address}
+                            onChange={handleChange}
+                            className="input-field" 
+                            rows="3"
+                            placeholder="Enter Full Address" 
+                            style={{ backgroundColor: '#f1f5f9' }} 
+                        />
+                    </div>
+
+                    <div className="section-card">
+                        <label><strong>Blood Group</strong></label>
+                        <select
+                            name="bloodGroup"
+                            value={form.bloodGroup}
+                            onChange={handleChange}
+                            className="input-field"
+                        >
+                            {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(bg => (
+                                <option key={bg} value={bg}>{bg}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="section-card">
+                        <label><strong>Upload Photo</strong></label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            name="photo"
+                            onChange={handleChange}
+                            className="input-field"
+                        />
+                        {photoFile && <small>Selected: **{photoFile.name}**</small>}
+                        {form.photoURL && !photoFile && <small>Current photo on file.</small>}
+                    </div>
+                    
+                    {/* Password Fields */}
+                    <div className="section-card" style={{ gridColumn: "1 / -1" }}>
+                        <h5>Password Change 🔒</h5>
+                        <label>Current Password (Required to save **any** changes)</label>
+                        <input 
+                            type="password" 
+                            name="currentPassword" 
+                            value={currentPassword}
+                            onChange={handleChange}
+                            placeholder="Enter current password" 
+                            autoComplete="current-password"
+                            className="input-field"
+                        />
+                        
+                        <label style={{ marginTop: 15 }}>New Password</label>
+                        <input 
+                            type="password" 
+                            name="newPassword" 
+                            value={newPassword}
+                            onChange={handleChange}
+                            placeholder="Leave blank to keep current (min 6 chars)" 
+                            autoComplete="new-password"
+                            className="input-field"
+                        />
+                    </div>
+
+                    {/* Save/Cancel Buttons */}
+                    <div className="section-card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
+                        <button type="submit" className="dashboard-home" disabled={saving} style={{ marginRight: 10 }}>
+                            {saving ? "Saving..." : "Save Changes"}
+                        </button>
+                        <button 
+                            type="button" 
+                            className="dashboard-home" 
+                            onClick={() => {
+                                setIsEditing(false);
+                                setCurrentPassword('');
+                                setNewPassword('');
+                                setMessage('');
+                            }} 
+                            disabled={saving}
+                        >
+                            Cancel
+                        </button>
+                        {message && <p style={{ marginTop: "8px", color: saving ? 'orange' : '#0f172a', fontWeight: 600 }}>{message}</p>}
+                    </div>
+                </form>
+            )}
         </div>
-
     );
-
 }
