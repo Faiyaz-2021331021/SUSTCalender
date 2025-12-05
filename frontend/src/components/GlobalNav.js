@@ -6,9 +6,7 @@ export default function GlobalNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isHome = pathname === "/";
-  const isAdminDashboard = pathname === "/admin-dashboard";
-
-  if (isHome || isAdminDashboard) return null;
+  if (isHome) return null;
 
   return (
     <div className="global-nav">
