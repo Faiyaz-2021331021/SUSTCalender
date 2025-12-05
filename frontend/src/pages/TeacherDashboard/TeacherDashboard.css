@@ -59,12 +59,12 @@
 
 /* Make secondary same as primary */
 .btn-active {
-  background: #1d4ed8;
+  background: #d81d4f;
 }
 
 /* Darker blue for active state */
 .btn:hover {
-  background: #1d4ed8;
+  background: #144ff0;
 }
 
 .btn:disabled {
