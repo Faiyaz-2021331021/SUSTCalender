@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-// 🔑 Firebase Auth imports for re-authentication and password change
+
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 
 import { useAuth } from "../../context/AuthContext";
-// ⭐ Ensure your firebase and dashboard CSS paths are correct
+
 import { db, storage } from "../../firebase";
 import "../StudentDashboard/StudentDashboard.css";
 
 
-// --- FALLBACKS & STYLES ---
+
 
 const fallbackProfile = {
     name: "Student",
@@ -29,27 +29,22 @@ export default function StudentProfile() {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
 
-    // Initial name calculation based on email (for fallback)
     const initialName = currentUser?.email.split('@')[0] || "Student";
 
-    // STATES FOR DISPLAY AND EDITING
     const [profile, setProfile] = useState(fallbackProfile);
     const [form, setForm] = useState(fallbackProfile);
-    const [nameOverride, setNameOverride] = useState(initialName); // 🔑 NEW: For editing the name
+    const [nameOverride, setNameOverride] = useState(initialName);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    // STATES FOR FILE AND MESSAGE
     const [photoFile, setPhotoFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
 
-    // STATES FOR PASSWORD HANDLING
     const [newPassword, setNewPassword] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
 
 
-    // --- 1. FETCH DATA ON LOAD ---
     useEffect(() => {
         async function loadProfile() {
             setLoading(true);
@@ -60,22 +55,20 @@ export default function StudentProfile() {
             try {
                 const ref = doc(db, "users", currentUser.uid);
                 const snap = await getDoc(ref);
-                const role = "Student"; // Fixed role for display
+                const role = "Student";
 
                 if (snap.exists()) {
                     const data = snap.data();
                     const currentName = data.name || initialName;
 
-                    // Set Profile State (for display)
                     setProfile({
                         ...fallbackProfile,
                         ...data,
                         email: currentUser.email || data.email,
                         name: currentName,
-                        role: role // Added role
+                        role: role
                     });
 
-                    // Set Form State (for editing)
                     setForm({
                         studentId: data.studentId || "",
                         department: data.department || "",
@@ -85,13 +78,13 @@ export default function StudentProfile() {
                         bloodGroup: data.bloodGroup || "O+",
                         photoURL: data.photoURL || ""
                     });
-                    setNameOverride(currentName); // 🔑 Set name for editing
+                    setNameOverride(currentName);
                 } else {
                     setProfile({
                         ...fallbackProfile,
                         email: currentUser.email,
                         name: initialName,
-                        role: role // Added role
+                        role: role
                     });
                     setNameOverride(initialName);
                 }
@@ -104,7 +97,6 @@ export default function StudentProfile() {
         loadProfile();
     }, [currentUser, initialName]);
 
-    // Calculate initials for avatar fallback
     const initials = (profile.name || fallbackProfile.name)
         .split(" ")
         .map((n) => n[0])
@@ -112,25 +104,22 @@ export default function StudentProfile() {
         .toUpperCase()
         .slice(0, 2);
 
-    // --- 2. HANDLE CHANGE FOR FORM INPUTS ---
     const handleChange = (e) => {
         const { name, value, files } = e.target;
         if (name === "photo" && files) {
             setPhotoFile(files[0]);
-        } else if (name === "name") { // 🔑 Handle name change
+        } else if (name === "name") {
             setNameOverride(value);
         } else if (name === "newPassword") {
             setNewPassword(value);
         } else if (name === "currentPassword") {
             setCurrentPassword(value);
         } else {
-            // This handles studentId, department, year, phone, address, bloodGroup
             setForm(prev => ({ ...prev, [name]: value }));
         }
     };
 
 
-    // --- 3. SUBMIT LOGIC ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!currentUser || !currentUser.uid) {
@@ -143,7 +132,6 @@ export default function StudentProfile() {
         let updatedPhotoURL = form.photoURL;
 
         try {
-            // --- A. Handle Password Update (Auth change) ---
             if (newPassword) {
                 if (!currentPassword) {
                     throw new Error("You must enter your current password to set a new one.");
@@ -161,28 +149,24 @@ export default function StudentProfile() {
                 await updatePassword(currentUser, newPassword);
             }
 
-            // --- B. Handle Photo Upload ---
             if (photoFile) {
                 const storageRef = ref(storage, `studentProfilePhotos/${currentUser.uid}/${photoFile.name}`);
                 await uploadBytes(storageRef, photoFile);
                 updatedPhotoURL = await getDownloadURL(storageRef);
             }
 
-            // --- C. Save Data to Firestore (Profile change) ---
             await setDoc(doc(db, "users", currentUser.uid), {
                 ...form,
-                name: nameOverride, // 🔑 Save the updated name
+                name: nameOverride,
                 photoURL: updatedPhotoURL
             }, { merge: true });
 
-            // 4. Update local state and UI
             setForm(prev => ({ ...prev, photoURL: updatedPhotoURL }));
 
-            // Update display profile
             setProfile(prev => ({
                 ...prev,
                 ...form,
-                name: nameOverride, // Update name in display state
+                name: nameOverride,
                 photoURL: updatedPhotoURL,
             }));
 
@@ -190,11 +174,10 @@ export default function StudentProfile() {
             setCurrentPassword('');
             setNewPassword('');
             setMessage("Profile, photo, and password updated successfully!");
-            setIsEditing(false); // Switch back to display mode
+            setIsEditing(false);
 
         } catch (err) {
             console.error("Profile save failed:", err);
-            // Handle common re-auth errors (e.g., wrong current password)
             if (err.code === 'auth/wrong-password') {
                 setMessage("Incorrect current password. Please try again.");
             } else if (err.code === 'auth/user-mismatch') {
@@ -208,7 +191,7 @@ export default function StudentProfile() {
     };
 
 
-    // --- 4. RENDER LOGIC ---
+
 
     if (loading) {
         return (
@@ -237,10 +220,9 @@ export default function StudentProfile() {
                 </div>
                 <div className="profile-name">{profile.name}</div>
                 <div className="profile-email">{profile.email}</div>
-                <div className="profile-role" style={{ fontSize: '0.9em', color: '#64748b' }}>Role: {profile.role || 'Student'}</div> {/* 🔑 Display Role */}
+                <div className="profile-role" style={{ fontSize: '0.9em', color: '#64748b' }}>Role: {profile.role || 'Student'}</div>
             </div>
 
-            {/* --- DISPLAY MODE --- */}
             {!isEditing && (
                 <>
                     <div className="profile-grid vertical">
@@ -257,9 +239,7 @@ export default function StudentProfile() {
                             onClick={() => {
                                 setIsEditing(true);
                                 setMessage("");
-                                // Pre-fill the name field for editing
                                 setNameOverride(profile.name);
-                                // Pre-fill other form fields
                                 setForm({
                                     studentId: profile.studentId || "",
                                     department: profile.department || "",
@@ -277,11 +257,9 @@ export default function StudentProfile() {
                 </>
             )}
 
-            {/* --- EDITING MODE --- */}
             {isEditing && (
                 <form className="section-grid" onSubmit={handleSubmit} style={{ marginTop: 20 }}>
 
-                    {/* 🔑 NAME FIELD ADDED */}
                     <div className="section-card" style={{ gridColumn: "1 / -1" }}>
                         <label><strong>Name</strong></label>
                         <input
@@ -294,7 +272,6 @@ export default function StudentProfile() {
                         />
                     </div>
 
-                    {/* Other Editable Fields */}
                     <div className="section-card">
                         <label><strong>Student ID</strong></label>
                         <input
@@ -345,7 +322,6 @@ export default function StudentProfile() {
 
                     <div className="section-card">
                         <label><strong>Address</strong></label>
-                        {/* 🔑 FIX APPLIED: Added placeholder and inline style for background consistency */}
                         <textarea
                             name="address"
                             value={form.address}
@@ -384,7 +360,6 @@ export default function StudentProfile() {
                         {form.photoURL && !photoFile && <small>Current photo on file.</small>}
                     </div>
 
-                    {/* Password Fields (Requires current password for security) */}
                     <div className="section-card" style={{ gridColumn: "1 / -1" }}>
                         <h5>Password Change 🔒</h5>
                         <label>Current Password (Required to save **any** changes)</label>
@@ -410,7 +385,6 @@ export default function StudentProfile() {
                         />
                     </div>
 
-                    {/* Save/Cancel Buttons */}
                     <div className="section-card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
                         <button type="submit" className="dashboard-home" disabled={saving} style={{ marginRight: 10 }}>
                             {saving ? "Saving..." : "Save Changes"}
