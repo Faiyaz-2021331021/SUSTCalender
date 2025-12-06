@@ -10,7 +10,7 @@ export default function CreateEvent({ db }) {
     const [eventTime, setEventTime] = useState("");
 
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" }); // type: success | error
+    const [message, setMessage] = useState({ text: "", type: "" });
 
     const handleTypeSelect = (type) => {
         setEventType(type);
@@ -42,7 +42,6 @@ export default function CreateEvent({ db }) {
 
             setMessage({ text: `Event "${eventName}" created successfully!`, type: "success" });
 
-            // Reset form
             setStep(1);
             setEventType(null);
             setEventName("");

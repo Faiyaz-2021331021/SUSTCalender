@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     collection,
@@ -7,207 +7,144 @@ import {
     onSnapshot,
     getDocs,
     query,
-    where
+    where,
+    doc,
+    getDoc
 } from "firebase/firestore";
+
+import { db } from "../../firebase";
+import { useAuth } from "../../context/AuthContext";
+
+import AdminEvents from "./AdminEvents";
+import AdminProfile from "./AdminProfile";
+import AdminCalendar from "./AdminCalendar";
+import CreateAdminEventModal from "./CreateAdminEventModal";
 
 import "./AdminDashboard.css";
 
-
-export default function AdminDashboard({ db }) {
-    const [page, setPage] = useState("main");
+export default function AdminDashboard() {
     const navigate = useNavigate();
+    const { currentUser, loading } = useAuth();
 
-    return (
-        <div className="dashboard-container">
-            <aside className="dashboard-sidebar">
-                <div className="sidebar-header">
-                    <h2>Admin Portal</h2>
-                </div>
-                <nav className="sidebar-nav">
-                    <button
-                        className={`nav-btn ${page === "main" ? "active" : ""}`}
-                        onClick={() => setPage("main")}
-                    >
-                        Dashboard Home
-                    </button>
-                    <button
-                        className={`nav-btn ${page === "create" ? "active" : ""}`}
-                        onClick={() => setPage("create")}
-                    >
-                        Create Event
-                    </button>
-                    <button
-                        className={`nav-btn ${page === "see" ? "active" : ""}`}
-                        onClick={() => setPage("see")}
-                    >
-                        All Events
-                    </button>
-                    <button
-                        className={`nav-btn ${page === "courses" ? "active" : ""}`}
-                        onClick={() => setPage("courses")}
-                    >
-                        Courses
-                    </button>
-                    <button className="nav-btn logout" onClick={() => navigate("/")}>
-                        Logout
-                    </button>
-                </nav>
-            </aside>
+    const [role, setRole] = useState(null);
+    const [adminName, setAdminName] = useState("");
+    const [roleLoaded, setRoleLoaded] = useState(false);
+    const [events, setEvents] = useState([]);
 
-            <main className="dashboard-content">
-                <div className="content-glass">
-                    {page === "main" && (
-                        <div className="dashboard-welcome">
-                            <h1>Welcome Back, Admin</h1>
-                            <p>Manage your university events and schedules efficiently.</p>
-                            <div className="stats-grid">
-                                <div className="stat-card">
-                                    <h3>Events Created</h3>
-                                    <p>Check "All Events"</p>
-                                </div>
-                                <div className="stat-card">
-                                    <h3>System Status</h3>
-                                    <p className="status-active">Active</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+    const [view, setView] = useState("calendar");
+    const [modalView, setModalView] = useState(null);
+    const [eventToEdit, setEventToEdit] = useState(null);
 
-                    {page === "create" && <CreateEvent db={db} />}
-                    {page === "see" && <SeeAllEvents db={db} />}
-                    {page === "courses" && <ManageCourses db={db} />}
-                </div>
-            </main>
-        </div>
-    );
-}
-
-function CreateEvent({ db }) {
-    const [step, setStep] = useState(1);
-    const [eventType, setEventType] = useState(null);
-    const [eventName, setEventName] = useState("");
-    const [eventDate, setEventDate] = useState("");
-    const [eventTime, setEventTime] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState({ text: "", type: "" });
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!db) return;
-
-        setLoading(true);
-
-        try {
-            await addDoc(collection(db, "events"), {
-                name: eventName,
-                date: eventDate,
-                time: eventTime,
-                targetAudience: eventType,
-                createdAt: Timestamp.now(),
-            });
-
-            setMessage({ text: "Event created successfully!", type: "success" });
-
-            setEventName("");
-            setEventDate("");
-            setEventTime("");
-            setStep(1);
-            setEventType(null);
-        } catch (err) {
-            setMessage({ text: "Error creating event.", type: "error" });
+    useEffect(() => {
+        if (!loading && currentUser) {
+            const userRef = doc(db, "users", currentUser.uid);
+            getDoc(userRef)
+                .then(docSnap => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setRole(data.role);
+                        setAdminName(data.name || currentUser.email.split('@')[0]);
+                    } else {
+                        setRole(null);
+                    }
+                })
+                .finally(() => setRoleLoaded(true));
+        } else if (!loading && !currentUser) {
+            setRoleLoaded(true);
         }
+    }, [currentUser, loading]);
 
-        setLoading(false);
-        setTimeout(() => setMessage({ text: "", type: "" }), 3000);
+    useEffect(() => {
+        if (!loading && roleLoaded && (!currentUser || role !== "admin")) {
+            if (roleLoaded) navigate("/");
+        }
+    }, [currentUser, role, roleLoaded, loading, navigate]);
+
+    useEffect(() => {
+        if (!currentUser) return;
+        const q = query(collection(db, "events"));
+
+        const unsub = onSnapshot(q, snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const filtered = list.filter(ev =>
+                ev.createdByRole === 'admin' || ev.createdBy === currentUser.uid
+            );
+            setEvents(filtered.sort((a, b) => (a.date || "").localeCompare(b.date || "")));
+        });
+        return () => unsub();
+    }, [currentUser]);
+
+    const handleQuickCreateEvent = () => {
+        setEventToEdit(null);
+        setModalView("create-event");
+        window.scrollTo(0, 0);
     };
 
-    if (step === 1) {
-        return (
-            <div className="event-step">
-                <h3>Select Audience</h3>
-                <div className="audience-selection-grid">
-                    <div className="audience-option-card student" onClick={() => { setEventType("student"); setStep(2); }}>
-                        <div className="option-icon">🎓</div>
-                        <h4>Students</h4>
-                        <p>For student-only events</p>
-                    </div>
-                    <div className="audience-option-card teacher" onClick={() => { setEventType("teacher"); setStep(2); }}>
-                        <div className="option-icon">👨‍🏫</div>
-                        <h4>Teachers</h4>
-                        <p>For faculty meetings</p>
-                    </div>
-                    <div className="audience-option-card both" onClick={() => { setEventType("both"); setStep(2); }}>
-                        <div className="option-icon">🏫</div>
-                        <h4>Both</h4>
-                        <p>For general campus events</p>
-                    </div>
-                </div>
-            </div>
-        );
+    const handleEditEvent = (event) => {
+        setEventToEdit(event);
+        setModalView("create-event");
+        window.scrollTo(0, 0);
+    };
+
+    const closeModal = () => {
+        setModalView(null);
+        setEventToEdit(null);
+    };
+
+    if (loading || !roleLoaded || !currentUser) {
+        return <div className="loading-state">Loading Dashboard...</div>;
+    }
+
+    let ComponentToRender;
+    switch (view) {
+        case "calendar":
+            ComponentToRender = <AdminCalendar events={events} onEditEvent={handleEditEvent} />;
+            break;
+        case "events":
+            ComponentToRender = <AdminEvents events={events} onEditEvent={handleEditEvent} />;
+            break;
+        case "courses":
+            ComponentToRender = <ManageCourses db={db} />;
+            break;
+        case "profile":
+            ComponentToRender = <AdminProfile admin={currentUser} role={role} />;
+            break;
+        default:
+            ComponentToRender = <AdminCalendar events={events} onEditEvent={handleEditEvent} />;
+            setView("calendar");
     }
 
     return (
-        <div className="event-step">
-            <button className="btn btn-secondary" onClick={() => setStep(1)}>&lt; Back</button>
-            <h3>Create Event (For: {eventType})</h3>
-
-            <form onSubmit={handleSubmit} className="event-form">
-                <input type="text" placeholder="Event Name" value={eventName}
-                    onChange={(e) => setEventName(e.target.value)} required />
-
-                <input type="date" value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)} required />
-
-                <input type="time" value={eventTime}
-                    onChange={(e) => setEventTime(e.target.value)} required />
-
-                <button className="btn" disabled={loading}>
-                    {loading ? "Creating..." : "Create Event"}
-                </button>
-
-                {message.text && <p className={`submit-message ${message.type}`}>{message.text}</p>}
-            </form>
-        </div>
-    );
-}
-
-function SeeAllEvents({ db }) {
-    const [events, setEvents] = useState([]);
-
-    useEffect(() => {
-        if (!db) return;
-
-        return onSnapshot(collection(db, "events"), (snap) => {
-            const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setEvents(list.sort((a, b) => b.createdAt?.toDate() - a.createdAt?.toDate()));
-        });
-    }, [db]);
-
-    return (
-        <div>
-            <h3>All Events</h3>
-            {events.length === 0 ? (
-                <div className="no-events">
-                    <p>No events found. Create one to get started!</p>
-                </div>
-            ) : (
-                <div className="events-grid">
-                    {events.map(e => (
-                        <div key={e.id} className="event-card-modern">
-                            <div className={`event-badge ${e.targetAudience}`}>
-                                {e.targetAudience === 'student' && '🎓 Student'}
-                                {e.targetAudience === 'teacher' && '👨‍🏫 Teacher'}
-                                {e.targetAudience === 'both' && '🏫 Campus Wide'}
-                            </div>
-                            <h4>{e.name}</h4>
-                            <div className="event-meta">
-                                <span>📅 {e.date}</span>
-                                <span>⏰ {e.time}</span>
-                            </div>
+        <div className="admin-dashboard">
+            <div className="admin-container">
+                <div className="admin-header">
+                    <div>
+                        <h2 className="admin-title">Admin Dashboard</h2>
+                        <div className="admin-meta-info" style={{ color: '#475569', fontWeight: 500 }}>
+                            Welcome, {adminName}
                         </div>
-                    ))}
+                    </div>
+                    <div className="admin-actions">
+                        <button className={`btn ${view === "calendar" ? "btn-active" : ""}`} onClick={() => setView("calendar")}>View Calendar</button>
+                        <button className={`btn ${view === "events" ? "btn-active" : ""}`} onClick={() => setView("events")}>Recent/Upcoming Events</button>
+                        <button className="btn" onClick={handleQuickCreateEvent}>Create Event</button>
+                        <button className={`btn ${view === "courses" ? "btn-active" : ""}`} onClick={() => setView("courses")}>Courses</button>
+                        <button className={`btn ${view === "profile" ? "btn-active" : ""}`} onClick={() => setView("profile")}>My Profile</button>
+                    </div>
                 </div>
-            )}
+
+                <div className="dashboard-content">
+                    {ComponentToRender}
+                </div>
+
+                {modalView === "create-event" && (
+                    <CreateAdminEventModal
+                        admin={currentUser}
+                        eventData={eventToEdit}
+                        onClose={closeModal}
+                    />
+                )}
+            </div>
         </div>
     );
 }
@@ -226,7 +163,6 @@ function ManageCourses({ db }) {
     useEffect(() => {
         if (!db) return;
         const fetchTeachers = async () => {
-            // Fetch all users and filter client-side to handle role casing/legacy docs
             const snap = await getDocs(collection(db, "users"));
             const list = snap.docs
                 .map(d => ({ id: d.id, ...d.data() }))

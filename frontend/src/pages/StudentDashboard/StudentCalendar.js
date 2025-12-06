@@ -11,7 +11,6 @@ export default function StudentCalendar() {
     const [selectedDateEvents, setSelectedDateEvents] = useState([]);
     const navigate = useNavigate();
 
-    // Loading events
     useEffect(() => {
         const q = query(collection(db, "events"));
 
@@ -28,24 +27,19 @@ export default function StudentCalendar() {
         return () => unsubscribe();
     }, []);
 
-    // highlighting event dates
     const tileClassName = ({ date }) => {
         const d = date.toISOString().split("T")[0];
         const eventOnDate = events.find(event => event.date === d);
 
-        // Normalize 'today' to YYYY-MM-D string for comparison
         const today = new Date();
         const todayStr = today.toISOString().split("T")[0];
 
         if (eventOnDate) {
-            // If date is before today -> Past
-            // If date is today or after -> Upcoming
             return d < todayStr ? "event-past" : "event-upcoming";
         }
         return "";
     };
 
-    // Show events on clicking a date
     const handleDateClick = (date) => {
         const d = date.toISOString().split("T")[0];
         const todaysEvents = events.filter(event => event.date === d);
@@ -54,7 +48,6 @@ export default function StudentCalendar() {
 
     return (
         <div className="main-grid-single">
-            {/*calendar / daily Events */}
             <div className="calendar-box">
                 <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <strong>Student Calendar</strong>

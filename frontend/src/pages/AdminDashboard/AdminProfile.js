@@ -1,95 +1,90 @@
-import React, { useEffect, useState } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import React, { useState, useEffect } from 'react';
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 
-import { useAuth } from "../../context/AuthContext";
 import { db, storage } from "../../firebase";
-import "../StudentDashboard/StudentDashboard.css";
+import { useAuth } from "../../context/AuthContext";
 
 const fallbackProfile = {
-    name: "Student",
-    email: "student@example.com",
-    studentId: "",
-    department: "",
-    year: "",
+    adminId: "",
     phone: "",
     address: "",
     bloodGroup: "O+",
     photoURL: ""
 };
 
-export default function StudentProfile() {
+export default function AdminProfile({ role = "Admin" }) {
     const { currentUser } = useAuth();
 
-    const initialName = currentUser?.email?.split('@')[0] || "Student";
+    const initialName = currentUser?.email.split('@')[0] || "Admin";
 
-    const [profile, setProfile] = useState(fallbackProfile);
+    const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState(fallbackProfile);
     const [nameOverride, setNameOverride] = useState(initialName);
-    const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [profile, setProfile] = useState({ name: initialName, email: currentUser?.email || "N/A", ...fallbackProfile, role });
 
     const [photoFile, setPhotoFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(true);
+
+    const [newPassword, setNewPassword] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
 
     useEffect(() => {
-        if (!currentUser) {
-            setLoading(false);
-            return;
+        async function loadProfileData() {
+            setLoading(true);
+            if (!currentUser || !currentUser.uid) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                const snap = await getDoc(userRef);
+                const email = currentUser.email || "N/A";
+                let currentName = initialName;
+                let currentData = {};
+
+                if (snap.exists()) {
+                    currentData = snap.data();
+                    currentName = currentData.name || initialName;
+
+                    setForm({
+                        adminId: currentData.adminId || "",
+                        phone: currentData.phone || "",
+                        address: currentData.address || "",
+                        bloodGroup: currentData.bloodGroup || "O+",
+                        photoURL: currentData.photoURL || ""
+                    });
+                } else {
+                    setForm(fallbackProfile);
+                }
+
+                setProfile({
+                    name: currentName,
+                    email: email,
+                    role: currentData.role || role,
+                    adminId: currentData.adminId || "N/A",
+                    phone: currentData.phone || "N/A",
+                    address: currentData.address || "N/A",
+                    bloodGroup: currentData.bloodGroup || "O+",
+                    photoURL: currentData.photoURL || ""
+                });
+
+                setNameOverride(currentName);
+            } catch (err) {
+                console.error("Profile fetch failed:", err);
+            } finally {
+                setLoading(false);
+            }
         }
 
-        const refDoc = doc(db, "users", currentUser.uid);
-        const unsub = onSnapshot(refDoc, (snap) => {
-            const role = "Student";
-            if (snap.exists()) {
-                const data = snap.data();
-                const currentName = data.name || initialName;
-                setProfile({
-                    ...fallbackProfile,
-                    ...data,
-                    email: currentUser.email || data.email,
-                    name: currentName,
-                    role
-                });
-                setForm({
-                    studentId: data.studentId || "",
-                    department: data.department || "",
-                    year: data.year || "",
-                    phone: data.phone || "",
-                    address: data.address || "",
-                    bloodGroup: data.bloodGroup || "O+",
-                    photoURL: data.photoURL || ""
-                });
-                setNameOverride(currentName);
-            } else {
-                setProfile({
-                    ...fallbackProfile,
-                    email: currentUser.email,
-                    name: initialName,
-                    role
-                });
-                setForm({
-                    studentId: "",
-                    department: "",
-                    year: "",
-                    phone: "",
-                    address: "",
-                    bloodGroup: "O+",
-                    photoURL: ""
-                });
-                setNameOverride(initialName);
-            }
-            setLoading(false);
-        }, (err) => {
-            console.error("Profile load error", err);
-            setLoading(false);
-        });
+        loadProfileData();
+    }, [currentUser, initialName, role]);
 
-        return () => unsub();
-    }, [currentUser, initialName]);
-
-    const initials = (profile.name || fallbackProfile.name)
+    const initials = (profile.name || initialName)
         .split(" ")
         .map((n) => n[0])
         .join("")
@@ -102,6 +97,10 @@ export default function StudentProfile() {
             setPhotoFile(files[0]);
         } else if (name === "name") {
             setNameOverride(value);
+        } else if (name === "newPassword") {
+            setNewPassword(value);
+        } else if (name === "currentPassword") {
+            setCurrentPassword(value);
         } else {
             setForm(prev => ({ ...prev, [name]: value }));
         }
@@ -119,19 +118,35 @@ export default function StudentProfile() {
         let updatedPhotoURL = form.photoURL;
 
         try {
+            if (newPassword) {
+                if (!currentPassword) {
+                    throw new Error("You must enter your current password to set a new one.");
+                }
+                if (newPassword.length < 6) {
+                    throw new Error("New password must be at least 6 characters long.");
+                }
+
+                const credential = EmailAuthProvider.credential(
+                    currentUser.email,
+                    currentPassword
+                );
+
+                await reauthenticateWithCredential(currentUser, credential);
+                await updatePassword(currentUser, newPassword);
+            }
+
             if (photoFile) {
-                const storageRef = ref(storage, `studentProfilePhotos/${currentUser.uid}/${photoFile.name}`);
-                await uploadBytes(storageRef, photoFile, { contentType: photoFile.type || "application/octet-stream" });
+                const storageRef = ref(storage, `adminProfilePhotos/${currentUser.uid}/${photoFile.name}`);
+                await uploadBytes(storageRef, photoFile);
                 updatedPhotoURL = await getDownloadURL(storageRef);
             }
 
             await setDoc(doc(db, "users", currentUser.uid), {
                 ...form,
                 name: nameOverride,
-                email: currentUser.email || profile.email,
-                role: profile.role || "student",
-                photoURL: updatedPhotoURL,
-                updatedAt: new Date()
+                email: currentUser.email,
+                role: role,
+                photoURL: updatedPhotoURL
             }, { merge: true });
 
             setForm(prev => ({ ...prev, photoURL: updatedPhotoURL }));
@@ -140,17 +155,23 @@ export default function StudentProfile() {
                 ...form,
                 name: nameOverride,
                 photoURL: updatedPhotoURL,
-                email: currentUser.email || prev.email,
-                role: prev.role || "student"
             }));
 
             setPhotoFile(null);
-            setMessage("Profile and photo updated successfully!");
+            setCurrentPassword('');
+            setNewPassword('');
+            setMessage("Profile, photo, and password updated successfully!");
             setIsEditing(false);
 
         } catch (err) {
             console.error("Profile save failed:", err);
-            setMessage(`Could not save profile: ${err.message || "Unknown error"}`);
+            if (err.code === 'auth/wrong-password') {
+                setMessage("Incorrect current password. Please try again.");
+            } else if (err.code === 'auth/user-mismatch') {
+                setMessage("Error: User mismatch during re-authentication.");
+            } else {
+                setMessage(`Could not save profile: ${err.message || 'Unknown error'}`);
+            }
         } finally {
             setSaving(false);
         }
@@ -167,9 +188,7 @@ export default function StudentProfile() {
     return (
         <div className="student-section">
             <div className="section-header">
-                <div style={{ flex: 1 }}>
-                    <h1>{isEditing ? "Edit Profile" : "My Profile"}</h1>
-                </div>
+                <h1>{isEditing ? "Edit Profile" : "My Profile"}</h1>
             </div>
 
             <div className="profile-hero">
@@ -182,18 +201,16 @@ export default function StudentProfile() {
                 </div>
                 <div className="profile-name">{profile.name}</div>
                 <div className="profile-email">{profile.email}</div>
-                <div className="profile-role" style={{ fontSize: "0.9em", color: "#64748b" }}>Role: {profile.role || "Student"}</div>
+                <div className="profile-role" style={{ fontSize: '0.9em', color: '#64748b' }}>Role: {profile.role}</div>
             </div>
 
             {!isEditing && (
                 <>
                     <div className="profile-grid vertical">
-                        <div className="profile-item vibrant"><strong>Student ID</strong><span>{profile.studentId || "N/A"}</span></div>
-                        <div className="profile-item vibrant"><strong>Department</strong><span>{profile.department || "N/A"}</span></div>
-                        <div className="profile-item vibrant"><strong>Year</strong><span>{profile.year || "N/A"}</span></div>
-                        <div className="profile-item vibrant"><strong>Phone</strong><span>{profile.phone || "N/A"}</span></div>
-                        <div className="profile-item vibrant"><strong>Address</strong><span>{profile.address || "N/A"}</span></div>
-                        <div className="profile-item vibrant"><strong>Blood Group</strong><span>{profile.bloodGroup || "N/A"}</span></div>
+                        <div className="profile-item vibrant"><strong>Admin ID</strong><span>{profile.adminId}</span></div>
+                        <div className="profile-item vibrant"><strong>Contact Number</strong><span>{profile.phone}</span></div>
+                        <div className="profile-item vibrant"><strong>Address</strong><span>{profile.address}</span></div>
+                        <div className="profile-item vibrant"><strong>Blood Group</strong><span>{profile.bloodGroup}</span></div>
                     </div>
                     <div style={{ marginTop: "20px", textAlign: "center" }}>
                         <button
@@ -203,11 +220,9 @@ export default function StudentProfile() {
                                 setMessage("");
                                 setNameOverride(profile.name);
                                 setForm({
-                                    studentId: profile.studentId || "",
-                                    department: profile.department || "",
-                                    year: profile.year || "",
-                                    phone: profile.phone || "",
-                                    address: profile.address || "",
+                                    adminId: profile.adminId === "N/A" ? "" : profile.adminId,
+                                    phone: profile.phone === "N/A" ? "" : profile.phone,
+                                    address: profile.address === "N/A" ? "" : profile.address,
                                     bloodGroup: profile.bloodGroup || "O+",
                                     photoURL: profile.photoURL || ""
                                 });
@@ -221,6 +236,7 @@ export default function StudentProfile() {
 
             {isEditing && (
                 <form className="section-grid" onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+
                     <div className="section-card" style={{ gridColumn: "1 / -1" }}>
                         <label><strong>Name</strong></label>
                         <input
@@ -234,38 +250,14 @@ export default function StudentProfile() {
                     </div>
 
                     <div className="section-card">
-                        <label><strong>Student ID</strong></label>
+                        <label><strong>Admin ID</strong></label>
                         <input
                             type="text"
-                            name="studentId"
-                            value={form.studentId}
+                            name="adminId"
+                            value={form.adminId}
                             onChange={handleChange}
                             className="input-field"
-                            placeholder="Enter Student ID"
-                        />
-                    </div>
-
-                    <div className="section-card">
-                        <label><strong>Department</strong></label>
-                        <input
-                            type="text"
-                            name="department"
-                            value={form.department}
-                            onChange={handleChange}
-                            className="input-field"
-                            placeholder="Enter Department"
-                        />
-                    </div>
-
-                    <div className="section-card">
-                        <label><strong>Year</strong></label>
-                        <input
-                            type="text"
-                            name="year"
-                            value={form.year}
-                            onChange={handleChange}
-                            className="input-field"
-                            placeholder="Enter Academic Year"
+                            placeholder="Enter Admin ID"
                         />
                     </div>
 
@@ -290,7 +282,7 @@ export default function StudentProfile() {
                             className="input-field"
                             rows="3"
                             placeholder="Enter Full Address"
-                            style={{ backgroundColor: "#f1f5f9" }}
+                            style={{ backgroundColor: '#f1f5f9' }}
                         />
                     </div>
 
@@ -321,6 +313,31 @@ export default function StudentProfile() {
                         {form.photoURL && !photoFile && <small>Current photo on file.</small>}
                     </div>
 
+                    <div className="section-card" style={{ gridColumn: "1 / -1" }}>
+                        <h5>Password Change 🔒</h5>
+                        <label>Current Password (Required to save **any** changes)</label>
+                        <input
+                            type="password"
+                            name="currentPassword"
+                            value={currentPassword}
+                            onChange={handleChange}
+                            placeholder="Enter current password"
+                            autoComplete="current-password"
+                            className="input-field"
+                        />
+
+                        <label style={{ marginTop: 15 }}>New Password</label>
+                        <input
+                            type="password"
+                            name="newPassword"
+                            value={newPassword}
+                            onChange={handleChange}
+                            placeholder="Leave blank to keep current (min 6 chars)"
+                            autoComplete="new-password"
+                            className="input-field"
+                        />
+                    </div>
+
                     <div className="section-card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
                         <button type="submit" className="dashboard-home" disabled={saving} style={{ marginRight: 10 }}>
                             {saving ? "Saving..." : "Save Changes"}
@@ -330,16 +347,19 @@ export default function StudentProfile() {
                             className="dashboard-home"
                             onClick={() => {
                                 setIsEditing(false);
-                                setMessage("");
+                                setCurrentPassword('');
+                                setNewPassword('');
+                                setMessage('');
                             }}
                             disabled={saving}
                         >
                             Cancel
                         </button>
-                        {message && <p style={{ marginTop: "8px", color: saving ? "orange" : "#0f172a", fontWeight: 600 }}>{message}</p>}
+                        {message && <p style={{ marginTop: "8px", color: saving ? 'orange' : '#0f172a', fontWeight: 600 }}>{message}</p>}
                     </div>
                 </form>
             )}
         </div>
     );
 }
+
