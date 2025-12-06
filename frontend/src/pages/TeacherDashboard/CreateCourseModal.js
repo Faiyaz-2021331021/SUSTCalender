@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { db } from "../../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-// Basic Modal Styles (reused for consistency)
 const modalStyle = {
-    position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "center",
-    background: "rgba(2,6,23,0.45)", zIndex: 1200
+    position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: "60px",
+    background: "rgba(2,6,23,0.45)", zIndex: 1200, overflowY: "auto"
 };
 const modalCardStyle = {
     width: 520, maxWidth: "94%", background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 20px 60px rgba(2,6,23,0.4)"
@@ -50,8 +49,8 @@ export default function CreateCourseModal({ teacher, onClose }) {
                         <input value={code} onChange={(e) => setCode(e.target.value)} />
                     </div>
                     <div style={{ display: "flex", gap: 10 }}>
-                        <button className="btn" type="submit" disabled={loading}>{loading ? "Creating..." : "Create Course"}</button>
-                        <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
+                        <button className="btn" type="submit" disabled={loading} style={{ flex: 1 }}>{loading ? "Creating..." : "Create Course"}</button>
+                        <button className="btn btn-yellow" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
                     </div>
                 </form>
             </div>

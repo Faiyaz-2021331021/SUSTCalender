@@ -5,24 +5,28 @@ export default function TeacherCalendar({ events, onEditEvent }) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedDayEvents, setSelectedDayEvents] = useState([]);
 
-    // Update selected day events
     useEffect(() => {
         const formatted = selectedDate.toISOString().split("T")[0];
         setSelectedDayEvents(events.filter(ev => ev.date === formatted));
     }, [selectedDate, events]);
 
-    // Calendar tile styling for events
     const tileClassName = ({ date, view }) => {
         if (view === "month") {
-            const formatted = date.toISOString().split("T")[0];
-            return events.some(ev => ev.date === formatted) ? "event-day" : null;
+            const d = date.toISOString().split("T")[0];
+            const eventOnDate = events.find(event => event.date === d);
+
+            const today = new Date();
+            const todayStr = today.toISOString().split("T")[0];
+
+            if (eventOnDate) {
+                return d < todayStr ? "event-past" : "event-upcoming";
+            }
         }
         return null;
     };
 
     return (
         <div className="main-grid-single">
-            {/* --- Calendar / Daily Events --- */}
             <div className="calendar-box">
                 <div className="panel-header">
                     <strong>Course & General Events Calendar</strong>

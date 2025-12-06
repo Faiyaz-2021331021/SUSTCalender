@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth"; 
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 
-import { db, storage } from "../../firebase"; 
-import { useAuth } from "../../context/AuthContext"; 
-// Assuming the necessary CSS is imported or globally available
-
-// --- FALLBACKS & STYLES ---
+import { db, storage } from "../../firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const fallbackProfile = {
     teacherId: "",
@@ -21,24 +18,23 @@ const fallbackProfile = {
 
 export default function TeacherProfile({ teacher, courses = [], role = "Teacher" }) {
     const navigate = useNavigate();
-    const { currentUser } = useAuth(); 
-    
+    const { currentUser } = useAuth();
+
     const initialName = currentUser?.email.split('@')[0] || "Teacher";
 
     const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState(fallbackProfile);
-    const [nameOverride, setNameOverride] = useState(initialName); 
-    const [profile, setProfile] = useState({ name: initialName, email: teacher?.email || "N/A", ...fallbackProfile, role }); 
-    
+    const [nameOverride, setNameOverride] = useState(initialName);
+    const [profile, setProfile] = useState({ name: initialName, email: teacher?.email || "N/A", ...fallbackProfile, role });
+
     const [photoFile, setPhotoFile] = useState(null);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
 
-    const [newPassword, setNewPassword] = useState(''); 
-    const [currentPassword, setCurrentPassword] = useState(''); 
+    const [newPassword, setNewPassword] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
 
-    // --- 1. FETCH DATA ON LOAD ---
     useEffect(() => {
         async function loadProfileData() {
             setLoading(true);
@@ -46,7 +42,7 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 setLoading(false);
                 return;
             }
-            
+
             try {
                 const userRef = doc(db, "users", currentUser.uid);
                 const snap = await getDoc(userRef);
@@ -57,8 +53,7 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 if (snap.exists()) {
                     currentData = snap.data();
                     currentName = currentData.name || initialName;
-                    
-                    // Set form state for editing
+
                     setForm({
                         teacherId: currentData.teacherId || "",
                         department: currentData.department || "",
@@ -71,7 +66,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                     setForm(fallbackProfile);
                 }
 
-                // Set display profile state
                 setProfile({
                     name: currentName,
                     email: email,
@@ -84,7 +78,7 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                     bloodGroup: currentData.bloodGroup || "O+",
                     photoURL: currentData.photoURL || ""
                 });
-                
+
                 setNameOverride(currentName);
             } catch (err) {
                 console.error("Profile fetch failed:", err);
@@ -92,11 +86,10 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 setLoading(false);
             }
         }
-        
+
         loadProfileData();
-    }, [currentUser, initialName, role, courses.length, teacher?.email]); 
-    
-    // Calculate initials for avatar fallback
+    }, [currentUser, initialName, role, courses.length, teacher?.email]);
+
     const initials = (profile.name || initialName)
         .split(" ")
         .map((n) => n[0])
@@ -109,17 +102,16 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
         if (name === "photo" && files) {
             setPhotoFile(files[0]);
         } else if (name === "name") {
-            setNameOverride(value); 
-        } else if (name === "newPassword") { 
+            setNameOverride(value);
+        } else if (name === "newPassword") {
             setNewPassword(value);
-        } else if (name === "currentPassword") { 
+        } else if (name === "currentPassword") {
             setCurrentPassword(value);
         } else {
             setForm(prev => ({ ...prev, [name]: value }));
         }
     };
 
-    // --- 2. SAVE DATA TO FIREBASE ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!currentUser || !currentUser.uid) {
@@ -132,13 +124,12 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
         let updatedPhotoURL = form.photoURL;
 
         try {
-            // --- A. Handle Password Update (Auth change) ---
             if (newPassword) {
                 if (!currentPassword) {
                     throw new Error("You must enter your current password to set a new one.");
                 }
                 if (newPassword.length < 6) {
-                     throw new Error("New password must be at least 6 characters long.");
+                    throw new Error("New password must be at least 6 characters long.");
                 }
 
                 const credential = EmailAuthProvider.credential(
@@ -149,45 +140,41 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 await reauthenticateWithCredential(currentUser, credential);
                 await updatePassword(currentUser, newPassword);
             }
-            
-            // --- B. Handle Photo Upload ---
+
             if (photoFile) {
                 const storageRef = ref(storage, `teacherProfilePhotos/${currentUser.uid}/${photoFile.name}`);
                 await uploadBytes(storageRef, photoFile);
                 updatedPhotoURL = await getDownloadURL(storageRef);
             }
-            
-            // --- C. Save Data to Firestore (Profile change) ---
+
             await setDoc(doc(db, "users", currentUser.uid), {
                 ...form,
                 name: nameOverride,
                 email: currentUser.email,
                 role: role,
-                photoURL: updatedPhotoURL 
+                photoURL: updatedPhotoURL
             }, { merge: true });
 
-            // 4. Update local state and UI
             setForm(prev => ({ ...prev, photoURL: updatedPhotoURL }));
-            // Update display profile
-            setProfile(prev => ({ 
-                ...prev, 
-                ...form, 
-                name: nameOverride, 
+            setProfile(prev => ({
+                ...prev,
+                ...form,
+                name: nameOverride,
                 photoURL: updatedPhotoURL,
-            })); 
+            }));
 
-            setPhotoFile(null); 
+            setPhotoFile(null);
             setCurrentPassword('');
-            setNewPassword(''); 
+            setNewPassword('');
             setMessage("Profile, photo, and password updated successfully!");
             setIsEditing(false);
 
         } catch (err) {
             console.error("Profile save failed:", err);
             if (err.code === 'auth/wrong-password') {
-                 setMessage("Incorrect current password. Please try again.");
+                setMessage("Incorrect current password. Please try again.");
             } else if (err.code === 'auth/user-mismatch') {
-                 setMessage("Error: User mismatch during re-authentication.");
+                setMessage("Error: User mismatch during re-authentication.");
             } else {
                 setMessage(`Could not save profile: ${err.message || 'Unknown error'}`);
             }
@@ -195,8 +182,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
             setSaving(false);
         }
     };
-
-    // --- 3. RENDER LOGIC (New StudentProfile Style) ---
 
     if (loading) {
         return (
@@ -207,17 +192,11 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
     }
 
     return (
-        <div className="student-section"> 
+        <div className="student-section">
             <div className="section-header">
-                <div style={{ flex: 1 }}>
-                    <h1>{isEditing ? "Edit Profile" : "My Profile"}</h1>
-                    <p>{isEditing ? "Update your personal details and password." : "Review your teacher details."}</p>
-                </div>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <button className="close-btn" onClick={() => navigate("/teacher-dashboard")}>✕</button> 
-                </div>
+                <h1>{isEditing ? "Edit Profile" : "My Profile"}</h1>
             </div>
-            
+
             <div className="profile-hero">
                 <div className="avatar-wrap">
                     {profile.photoURL ? (
@@ -228,28 +207,26 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 </div>
                 <div className="profile-name">{profile.name}</div>
                 <div className="profile-email">{profile.email}</div>
-                <div className="profile-role" style={{ fontSize: '0.9em', color: '#64748b' }}>Role: {profile.role}</div> 
+                <div className="profile-role" style={{ fontSize: '0.9em', color: '#64748b' }}>Role: {profile.role}</div>
             </div>
 
-            {/* --- DISPLAY MODE --- */}
             {!isEditing && (
                 <>
                     <div className="profile-grid vertical">
-                        <div className="profile-item vibrant"><strong>Teacher ID</strong><span>{profile.teacherId}</span></div> 
-                        <div className="profile-item vibrant"><strong>Department</strong><span>{profile.department}</span></div> 
+                        <div className="profile-item vibrant"><strong>Teacher ID</strong><span>{profile.teacherId}</span></div>
+                        <div className="profile-item vibrant"><strong>Department</strong><span>{profile.department}</span></div>
                         <div className="profile-item vibrant"><strong>Courses Taught</strong><span>{profile.coursesTaught}</span></div>
                         <div className="profile-item vibrant"><strong>Contact Number</strong><span>{profile.phone}</span></div>
                         <div className="profile-item vibrant"><strong>Address</strong><span>{profile.address}</span></div>
                         <div className="profile-item vibrant"><strong>Blood Group</strong><span>{profile.bloodGroup}</span></div>
                     </div>
                     <div style={{ marginTop: "20px", textAlign: "center" }}>
-                        <button 
-                            className="dashboard-home" 
+                        <button
+                            className="dashboard-home"
                             onClick={() => {
                                 setIsEditing(true);
                                 setMessage("");
-                                // Pre-fill name and form fields for editing
-                                setNameOverride(profile.name); 
+                                setNameOverride(profile.name);
                                 setForm({
                                     teacherId: profile.teacherId === "N/A" ? "" : profile.teacherId,
                                     department: profile.department === "N/A" ? "" : profile.department,
@@ -266,14 +243,12 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 </>
             )}
 
-            {/* --- EDITING MODE --- */}
             {isEditing && (
                 <form className="section-grid" onSubmit={handleSubmit} style={{ marginTop: 20 }}>
-                    
-                    {/* NAME FIELD */}
+
                     <div className="section-card" style={{ gridColumn: "1 / -1" }}>
                         <label><strong>Name</strong></label>
-                        <input 
+                        <input
                             type="text"
                             name="name"
                             value={nameOverride}
@@ -282,8 +257,7 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                             placeholder="Enter your full name"
                         />
                     </div>
-                    
-                    {/* Teacher ID Field */}
+
                     <div className="section-card">
                         <label><strong>Teacher ID</strong></label>
                         <input
@@ -295,8 +269,7 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                             placeholder="Enter Teacher ID"
                         />
                     </div>
-                    
-                    {/* Department Field */}
+
                     <div className="section-card">
                         <label><strong>Department</strong></label>
                         <input
@@ -309,7 +282,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                         />
                     </div>
 
-                    {/* Contact, Address, Blood Group */}
                     <div className="section-card">
                         <label><strong>Contact Number</strong></label>
                         <input
@@ -324,15 +296,14 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
 
                     <div className="section-card">
                         <label><strong>Address</strong></label>
-                        {/* 🔑 FIX: Added style={{ backgroundColor: '#f1f5f9' }} to force the grey background if CSS isn't overriding the default textarea white background */}
                         <textarea
                             name="address"
                             value={form.address}
                             onChange={handleChange}
-                            className="input-field" 
+                            className="input-field"
                             rows="3"
-                            placeholder="Enter Full Address" 
-                            style={{ backgroundColor: '#f1f5f9' }} 
+                            placeholder="Enter Full Address"
+                            style={{ backgroundColor: '#f1f5f9' }}
                         />
                     </div>
 
@@ -362,47 +333,45 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                         {photoFile && <small>Selected: **{photoFile.name}**</small>}
                         {form.photoURL && !photoFile && <small>Current photo on file.</small>}
                     </div>
-                    
-                    {/* Password Fields */}
+
                     <div className="section-card" style={{ gridColumn: "1 / -1" }}>
                         <h5>Password Change 🔒</h5>
                         <label>Current Password (Required to save **any** changes)</label>
-                        <input 
-                            type="password" 
-                            name="currentPassword" 
+                        <input
+                            type="password"
+                            name="currentPassword"
                             value={currentPassword}
                             onChange={handleChange}
-                            placeholder="Enter current password" 
+                            placeholder="Enter current password"
                             autoComplete="current-password"
                             className="input-field"
                         />
-                        
+
                         <label style={{ marginTop: 15 }}>New Password</label>
-                        <input 
-                            type="password" 
-                            name="newPassword" 
+                        <input
+                            type="password"
+                            name="newPassword"
                             value={newPassword}
                             onChange={handleChange}
-                            placeholder="Leave blank to keep current (min 6 chars)" 
+                            placeholder="Leave blank to keep current (min 6 chars)"
                             autoComplete="new-password"
                             className="input-field"
                         />
                     </div>
 
-                    {/* Save/Cancel Buttons */}
                     <div className="section-card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
                         <button type="submit" className="dashboard-home" disabled={saving} style={{ marginRight: 10 }}>
                             {saving ? "Saving..." : "Save Changes"}
                         </button>
-                        <button 
-                            type="button" 
-                            className="dashboard-home" 
+                        <button
+                            type="button"
+                            className="dashboard-home"
                             onClick={() => {
                                 setIsEditing(false);
                                 setCurrentPassword('');
                                 setNewPassword('');
                                 setMessage('');
-                            }} 
+                            }}
                             disabled={saving}
                         >
                             Cancel

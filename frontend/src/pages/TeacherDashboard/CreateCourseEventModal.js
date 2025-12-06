@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { db } from "../../firebase";
 import { addDoc, updateDoc, deleteDoc, collection, doc, serverTimestamp } from "firebase/firestore";
 
-// Basic Modal Styles (reused for consistency)
+
 const modalStyle = {
-    position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "center",
-    background: "rgba(2,6,23,0.45)", zIndex: 1200
+    position: "fixed", inset: 0, display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: "60px",
+    background: "rgba(2,6,23,0.45)", zIndex: 1200, overflowY: "auto"
 };
 const modalCardStyle = {
     width: 520, maxWidth: "94%", background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 20px 60px rgba(20,40,70,0.4)"
@@ -46,12 +46,11 @@ export default function CreateCourseEventModal({ teacher, courses, preselectedCo
                 targetAudience,
             };
 
+
             if (isEditing) {
-                // Update
                 const ref = doc(db, "events", eventData.id);
                 await updateDoc(ref, commonData);
             } else {
-                // Create
                 await addDoc(collection(db, "events"), {
                     ...commonData,
                     createdBy: teacher.uid,
@@ -82,7 +81,7 @@ export default function CreateCourseEventModal({ teacher, courses, preselectedCo
         <div style={modalStyle}>
             <div style={modalCardStyle}>
                 <h3>{isEditing ? "Edit Event" : "Create New Event"}</h3>
-                
+
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Event Name</label>
@@ -116,12 +115,12 @@ export default function CreateCourseEventModal({ teacher, courses, preselectedCo
                     </div>
 
                     <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                        <button className="btn" type="submit" disabled={loading}>
+                        <button className="btn" type="submit" disabled={loading} style={{ flex: 1 }}>
                             {loading ? "Saving..." : isEditing ? "Save Changes" : "Create Event"}
                         </button>
-                        <button className="btn btn-secondary" type="button" onClick={onClose}>Cancel</button>
+                        <button className="btn btn-yellow" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
                         {isEditing && (
-                            <button className="btn btn-danger" type="button" onClick={handleDelete}>Delete</button>
+                            <button className="btn btn-danger" type="button" onClick={handleDelete} style={{ flex: 1 }}>Delete</button>
                         )}
                     </div>
                 </form>
