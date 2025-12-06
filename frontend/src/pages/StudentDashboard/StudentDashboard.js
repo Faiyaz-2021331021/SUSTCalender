@@ -29,7 +29,6 @@ export default function StudentDashboard() {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setRole(data.role);
-                    // Use updated name from Firestore, fallback to display name or email handle
                     setUserName(data.name || currentUser.displayName || currentUser.email.split('@')[0]);
                 } else {
                     setRole(null);
@@ -46,12 +45,10 @@ export default function StudentDashboard() {
         }
     }, [currentUser, role, roleLoaded, loading, navigate]);
 
-    // placeholder for courses
     useEffect(() => {
         setCourses([]);
     }, [currentUser]);
 
-    // fetching Events
     useEffect(() => {
         if (!currentUser) return;
         const q = query(collection(db, "events"));
@@ -66,9 +63,6 @@ export default function StudentDashboard() {
     if (loading || !roleLoaded || !currentUser) {
         return <div className="loading-state">Loading Dashboard...</div>;
     }
-
-    // --- Dynamic Content Rendering (Keep-Alive Strategy) ---
-    // We render all components once and toggle visibility to preserve state and avoid re-fetching.
 
     return (
         <div className="teacher-dashboard">
