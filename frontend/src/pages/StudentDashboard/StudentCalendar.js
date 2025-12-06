@@ -11,7 +11,7 @@ export default function StudentCalendar() {
     const [selectedDateEvents, setSelectedDateEvents] = useState([]);
     const navigate = useNavigate();
 
-    // Load all events from Firestore
+    // Loading events
     useEffect(() => {
         const q = query(collection(db, "events"));
 
@@ -28,9 +28,9 @@ export default function StudentCalendar() {
         return () => unsubscribe();
     }, []);
 
-    // Highlight event dates
+    // highlighting event dates
     const tileClassName = ({ date }) => {
-        const d = date.toISOString().split("T")[0]; // format YYYY-MM-DD
+        const d = date.toISOString().split("T")[0]; 
 
         const hasEvent = events.some(event => event.date === d);
         return hasEvent ? "event-highlight" : "";
@@ -44,35 +44,42 @@ export default function StudentCalendar() {
     };
 
     return (
-        <div className="calendar-wrapper">
-            <div className="section-header">
-                <div style={{ flex: 1, textAlign: "center" }}>
-                    <h2>Student Calendar</h2>
+        <div className="main-grid-single">
+            {/*calendar / daily Events */}
+            <div className="calendar-box">
+                <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <strong>Student Calendar</strong>
                 </div>
-                <button className="close-btn" onClick={() => navigate("/student-dashboard")}>✕</button>
-            </div>
 
-            <Calendar
-                onClickDay={handleDateClick}
-                tileClassName={tileClassName}
-            />
+                <Calendar
+                    onClickDay={handleDateClick}
+                    tileClassName={tileClassName}
+                />
 
-            <div className="event-details">
-                <h3>Events on Selected Date</h3>
-
-                {selectedDateEvents.length === 0 ? (
-                    <p>No events on this date.</p>
-                ) : (
-                    <ul>
-                        {selectedDateEvents.map(ev => (
-                            <li key={ev.id} className="event-card">
-                                <h4>{ev.name}</h4>
-                                <p><strong>Time:</strong> {ev.time}</p>
-                                <p><strong>For:</strong> {ev.targetAudience}</p>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                <div style={{ marginTop: 18 }} className="panel">
+                    <h4 style={{ margin: 0 }}>Events on {selectedDateEvents.length > 0 && selectedDateEvents[0].date ? selectedDateEvents[0].date : "Selected Date"}</h4>
+                    <div className="panel-body">
+                        {selectedDateEvents.length === 0 ? (
+                            <p className="no-items">No events on this date.</p>
+                        ) : (
+                            <ul className="event-list">
+                                {selectedDateEvents.map(ev => (
+                                    <li key={ev.id} className="event-card event-card-compact">
+                                        <div style={{ flexGrow: 1 }}>
+                                            <strong>{ev.name}</strong>
+                                            <small className="event-meta">
+                                                Target: {ev.targetAudience}
+                                            </small>
+                                        </div>
+                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                                            <span className="event-meta">{ev.time || "All day"}</span>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );
