@@ -18,7 +18,7 @@ export default function StudentCourses() {
                     <h1>My Courses</h1>
                     <p>Keep track of your enrolled classes.</p>
                 </div>
-                <button className="close-btn" onClick={() => navigate("/student-dashboard")}>✕</button>
+
             </div>
             <div className="section-grid">
                 {mockCourses.map(course => (
