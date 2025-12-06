@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { buildProfileDefaults } from "../utils/profileDefaults";
 import "./Login.css";
 
 export default function Login() {
@@ -43,7 +44,14 @@ export default function Login() {
         }
       } else {
         // If no user doc, create a minimal one using the current context
-        await setDoc(userRef, { email, role: targetRole, createdAt: new Date() }, { merge: true });
+        await setDoc(
+          userRef,
+          buildProfileDefaults(targetRole, {
+            email: trimmedEmail,
+            name: userCredential.user.displayName || trimmedEmail.split("@")[0]
+          }),
+          { merge: true }
+        );
       }
 
       navigate(`/${targetRole}-dashboard`);

@@ -9,9 +9,7 @@ import TeacherEvents from "./TeacherEvents";
 import TeacherProfile from "./TeacherProfile";
 import TeacherCourses from "./TeacherCourses";
 import TeacherCalendar from "./TeacherCalendar";
-import ManageCourses from "./ManageCourses";
-import CreateCourseModal from "./CreateCourseModal";
-import CreateCourseEventModal from "./CreateCourseEventModal";
+import TeacherCourseDetail from "./TeacherCourseDetail";
 
 import "./TeacherDashboard.css";
 
@@ -26,10 +24,7 @@ export default function TeacherDashboard() {
     const [events, setEvents] = useState([]);
 
     const [view, setView] = useState("calendar");
-    const [modalView, setModalView] = useState(null);
     const [eventToEdit, setEventToEdit] = useState(null);
-    const [selectedCourseForEvent, setSelectedCourseForEvent] = useState(null);
-
     const [selectedCourse, setSelectedCourse] = useState(null);
 
 
@@ -60,7 +55,7 @@ export default function TeacherDashboard() {
 
     useEffect(() => {
         if (!currentUser) return;
-        const q = query(collection(db, "courses"), where("createdBy", "==", currentUser.uid));
+        const q = query(collection(db, "courses"), where("teacherId", "==", currentUser.uid));
 
         const unsub = onSnapshot(q, snap => {
             const list = snap.docs.map(d => {
@@ -92,35 +87,10 @@ export default function TeacherDashboard() {
         return () => unsub();
     }, [currentUser]);
 
-    const handleViewCourse = (course) => {
-        setSelectedCourse(course);
-        setView("manage");
-    };
-
-    const handleQuickCreateEvent = (course = null) => {
-        setSelectedCourseForEvent(course);
-        setEventToEdit(null);
-        setModalView("create-event");
-        window.scrollTo(0, 0);
-    };
-
     const handleEditEvent = (event) => {
         setEventToEdit(event);
-        setSelectedCourseForEvent(null);
-        setModalView("create-event");
         window.scrollTo(0, 0);
     }
-
-    const handleCreateCourse = () => {
-        setModalView("create-course");
-        window.scrollTo(0, 0);
-    }
-
-    const closeModal = () => {
-        setModalView(null);
-        setEventToEdit(null);
-        setSelectedCourseForEvent(null);
-    };
 
     if (loading || !roleLoaded || !currentUser) {
         return <div className="loading-state">Loading Dashboard...</div>;
@@ -133,7 +103,7 @@ export default function TeacherDashboard() {
             ComponentToRender = <TeacherCalendar events={events} onEditEvent={handleEditEvent} />;
             break;
         case "courses":
-            ComponentToRender = <TeacherCourses courses={courses} onManageCourse={handleViewCourse} onQuickCreateEvent={handleQuickCreateEvent} />;
+            ComponentToRender = <TeacherCourses courses={courses} onSelectCourse={(c) => { setSelectedCourse(c); setView("course-detail"); }} />;
             break;
         case "events":
             ComponentToRender = <TeacherEvents events={events} onEditEvent={handleEditEvent} />;
@@ -141,20 +111,13 @@ export default function TeacherDashboard() {
         case "profile":
             ComponentToRender = <TeacherProfile teacher={currentUser} courses={courses} role={role} />;
             break;
-        case "manage":
+        case "course-detail":
             if (selectedCourse) {
-                return (
-                    <div className="teacher-dashboard">
-                        <ManageCourses
-                            course={selectedCourse}
-                            teacher={currentUser}
-                            onClose={() => setView("courses")}
-                        />
-                    </div>
-                );
+                ComponentToRender = <TeacherCourseDetail course={selectedCourse} onBack={() => setView("courses")} />;
+            } else {
+                setView("courses");
+                ComponentToRender = <TeacherCourses courses={courses} onSelectCourse={(c) => { setSelectedCourse(c); setView("course-detail"); }} />;
             }
-            ComponentToRender = <TeacherCourses courses={courses} onManageCourse={handleViewCourse} onQuickCreateEvent={handleQuickCreateEvent} />;
-            setView("courses");
             break;
         default:
             ComponentToRender = <TeacherCalendar events={events} onEditEvent={handleEditEvent} />;
@@ -175,8 +138,6 @@ export default function TeacherDashboard() {
                         <button className={`btn ${view === "calendar" ? "btn-active" : ""}`} onClick={() => setView("calendar")}>View Calendar</button>
                         <button className={`btn ${view === "courses" ? "btn-active" : ""}`} onClick={() => setView("courses")}>My Courses</button>
                         <button className={`btn ${view === "events" ? "btn-active" : ""}`} onClick={() => setView("events")}>Recent/Upcoming Events</button>
-                        <button className="btn" onClick={handleCreateCourse}>Create Course</button>
-                        <button className="btn" onClick={() => handleQuickCreateEvent()}>Create Event</button>
                         <button className={`btn ${view === "profile" ? "btn-active" : ""}`} onClick={() => setView("profile")}>My Profile</button>
                     </div>
                 </div>
@@ -184,22 +145,6 @@ export default function TeacherDashboard() {
                 <div className="dashboard-content">
                     {ComponentToRender}
                 </div>
-
-                {modalView === "create-course" && (
-                    <CreateCourseModal
-                        teacher={currentUser}
-                        onClose={closeModal}
-                    />
-                )}
-                {modalView === "create-event" && (
-                    <CreateCourseEventModal
-                        teacher={currentUser}
-                        courses={courses}
-                        preselectedCourse={selectedCourseForEvent}
-                        eventData={eventToEdit}
-                        onClose={closeModal}
-                    />
-                )}
             </div>
         </div>
     );

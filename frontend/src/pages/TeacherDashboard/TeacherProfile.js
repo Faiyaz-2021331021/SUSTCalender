@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 
 import { db, storage } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
@@ -31,9 +30,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
-
-    const [newPassword, setNewPassword] = useState('');
-    const [currentPassword, setCurrentPassword] = useState('');
 
     useEffect(() => {
         async function loadProfileData() {
@@ -103,10 +99,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
             setPhotoFile(files[0]);
         } else if (name === "name") {
             setNameOverride(value);
-        } else if (name === "newPassword") {
-            setNewPassword(value);
-        } else if (name === "currentPassword") {
-            setCurrentPassword(value);
         } else {
             setForm(prev => ({ ...prev, [name]: value }));
         }
@@ -124,23 +116,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
         let updatedPhotoURL = form.photoURL;
 
         try {
-            if (newPassword) {
-                if (!currentPassword) {
-                    throw new Error("You must enter your current password to set a new one.");
-                }
-                if (newPassword.length < 6) {
-                    throw new Error("New password must be at least 6 characters long.");
-                }
-
-                const credential = EmailAuthProvider.credential(
-                    currentUser.email,
-                    currentPassword
-                );
-
-                await reauthenticateWithCredential(currentUser, credential);
-                await updatePassword(currentUser, newPassword);
-            }
-
             if (photoFile) {
                 const storageRef = ref(storage, `teacherProfilePhotos/${currentUser.uid}/${photoFile.name}`);
                 await uploadBytes(storageRef, photoFile);
@@ -152,7 +127,8 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                 name: nameOverride,
                 email: currentUser.email,
                 role: role,
-                photoURL: updatedPhotoURL
+                photoURL: updatedPhotoURL,
+                updatedAt: new Date()
             }, { merge: true });
 
             setForm(prev => ({ ...prev, photoURL: updatedPhotoURL }));
@@ -164,20 +140,12 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
             }));
 
             setPhotoFile(null);
-            setCurrentPassword('');
-            setNewPassword('');
-            setMessage("Profile, photo, and password updated successfully!");
+            setMessage("Profile and photo updated successfully!");
             setIsEditing(false);
 
         } catch (err) {
             console.error("Profile save failed:", err);
-            if (err.code === 'auth/wrong-password') {
-                setMessage("Incorrect current password. Please try again.");
-            } else if (err.code === 'auth/user-mismatch') {
-                setMessage("Error: User mismatch during re-authentication.");
-            } else {
-                setMessage(`Could not save profile: ${err.message || 'Unknown error'}`);
-            }
+            setMessage(`Could not save profile: ${err.message || 'Unknown error'}`);
         } finally {
             setSaving(false);
         }
@@ -334,31 +302,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                         {form.photoURL && !photoFile && <small>Current photo on file.</small>}
                     </div>
 
-                    <div className="section-card" style={{ gridColumn: "1 / -1" }}>
-                        <h5>Password Change 🔒</h5>
-                        <label>Current Password (Required to save **any** changes)</label>
-                        <input
-                            type="password"
-                            name="currentPassword"
-                            value={currentPassword}
-                            onChange={handleChange}
-                            placeholder="Enter current password"
-                            autoComplete="current-password"
-                            className="input-field"
-                        />
-
-                        <label style={{ marginTop: 15 }}>New Password</label>
-                        <input
-                            type="password"
-                            name="newPassword"
-                            value={newPassword}
-                            onChange={handleChange}
-                            placeholder="Leave blank to keep current (min 6 chars)"
-                            autoComplete="new-password"
-                            className="input-field"
-                        />
-                    </div>
-
                     <div className="section-card" style={{ gridColumn: "1 / -1", textAlign: "center" }}>
                         <button type="submit" className="dashboard-home" disabled={saving} style={{ marginRight: 10 }}>
                             {saving ? "Saving..." : "Save Changes"}
@@ -368,8 +311,6 @@ export default function TeacherProfile({ teacher, courses = [], role = "Teacher"
                             className="dashboard-home"
                             onClick={() => {
                                 setIsEditing(false);
-                                setCurrentPassword('');
-                                setNewPassword('');
                                 setMessage('');
                             }}
                             disabled={saving}

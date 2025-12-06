@@ -1,13 +1,13 @@
 import React from 'react';
 
-export default function TeacherCourses({ courses, onManageCourse, onQuickCreateEvent }) {
+export default function TeacherCourses({ courses, onSelectCourse }) {
     return (
         <div className="main-grid">
-            <div className="side-panel" style={{gridColumn: 'span 2'}}>
+            <div className="side-panel" style={{ gridColumn: 'span 2' }}>
                 <div className="panel">
-                    <h4>My Courses Taught 📚</h4>
+                    <h4>Assigned Courses</h4>
                     {courses.length === 0 ? (
-                        <p className="no-items">No courses have been created yet. Use the "+ Create Course" button.</p>
+                        <p className="no-items">No courses have been assigned yet. Please contact admin.</p>
                     ) : (
                         <div className="course-list-grid">
                             {courses.map(c => (
@@ -15,19 +15,13 @@ export default function TeacherCourses({ courses, onManageCourse, onQuickCreateE
                                     <div>
                                         <div className="course-name">{c.title}</div>
                                         <div className="course-meta">
-                                            {c.code || "No Code"} • Created: {c.createdAt ? c.createdAt.toLocaleDateString() : "N/A"}
+                                            {c.code || "No Code"}  Assigned: {c.createdAt ? c.createdAt.toLocaleDateString() : "N/A"}
                                         </div>
+                                        {c.description && <div className="course-meta">{c.description}</div>}
                                     </div>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 100 }}>
-                                        <button 
-                                            className="btn btn-secondary btn-small" 
-                                            onClick={() => onQuickCreateEvent(c)}>
-                                            + Event
-                                        </button>
-                                        <button 
-                                            className="btn btn-primary btn-small" 
-                                            onClick={() => onManageCourse(c)}>
-                                            Manage Course
+                                    <div style={{ marginTop: 8 }}>
+                                        <button className="btn btn-secondary btn-small" onClick={() => onSelectCourse?.(c)}>
+                                            Open
                                         </button>
                                     </div>
                                 </div>

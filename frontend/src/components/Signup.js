@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { buildProfileDefaults } from "../utils/profileDefaults";
 import "./Login.css";
 
 export default function Signup() {
@@ -24,12 +25,12 @@ export default function Signup() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      await setDoc(doc(db, "users", uid), {
-        name,
-        email,
-        role,
-        createdAt: new Date()
-      });
+      // Create the user node with default profile fields based on role
+      await setDoc(
+        doc(db, "users", uid),
+        buildProfileDefaults(role, { email, name }),
+        { merge: true }
+      );
 
       alert("Signed up successfully!");
       setConfirmPassword("");

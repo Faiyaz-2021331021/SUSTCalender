@@ -4,7 +4,10 @@ import {
     collection,
     addDoc,
     Timestamp,
-    onSnapshot
+    onSnapshot,
+    getDocs,
+    query,
+    where
 } from "firebase/firestore";
 
 import "./AdminDashboard.css";
@@ -39,6 +42,12 @@ export default function AdminDashboard({ db }) {
                     >
                         All Events
                     </button>
+                    <button
+                        className={`nav-btn ${page === "courses" ? "active" : ""}`}
+                        onClick={() => setPage("courses")}
+                    >
+                        Courses
+                    </button>
                     <button className="nav-btn logout" onClick={() => navigate("/")}>
                         Logout
                     </button>
@@ -66,6 +75,7 @@ export default function AdminDashboard({ db }) {
 
                     {page === "create" && <CreateEvent db={db} />}
                     {page === "see" && <SeeAllEvents db={db} />}
+                    {page === "courses" && <ManageCourses db={db} />}
                 </div>
             </main>
         </div>
@@ -194,6 +204,143 @@ function SeeAllEvents({ db }) {
                                 <span>📅 {e.date}</span>
                                 <span>⏰ {e.time}</span>
                             </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ManageCourses({ db }) {
+    const [teachers, setTeachers] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [title, setTitle] = useState("");
+    const [code, setCode] = useState("");
+    const [description, setDescription] = useState("");
+    const [plan, setPlan] = useState("");
+    const [teacherId, setTeacherId] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        if (!db) return;
+        const fetchTeachers = async () => {
+            // Fetch all users and filter client-side to handle role casing/legacy docs
+            const snap = await getDocs(collection(db, "users"));
+            const list = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(u => (u.role || "").toLowerCase() === "teacher");
+            setTeachers(list);
+        };
+        fetchTeachers();
+        return onSnapshot(collection(db, "courses"), snap => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setCourses(list);
+        });
+    }, [db]);
+
+    const handleCreateCourse = async (e) => {
+        e.preventDefault();
+        if (!db) return;
+        if (!title || !teacherId) {
+            setMessage("Title and teacher are required.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const teacher = teachers.find(t => t.id === teacherId);
+            await addDoc(collection(db, "courses"), {
+                title,
+                code,
+                description,
+                plan,
+                syllabus: "",
+                schedule: "",
+                teacherId,
+                teacherName: teacher?.name || teacher?.email || "Assigned Teacher",
+                createdAt: Timestamp.now()
+            });
+            setTitle("");
+            setCode("");
+            setDescription("");
+            setPlan("");
+            setTeacherId("");
+            setMessage("Course assigned successfully.");
+        } catch (err) {
+            console.error(err);
+            setMessage("Failed to create course.");
+        } finally {
+            setLoading(false);
+            setTimeout(() => setMessage(""), 3000);
+        }
+    };
+
+    return (
+        <div>
+            <h3>Assign Course to Teacher</h3>
+            <form className="event-form" onSubmit={handleCreateCourse}>
+                <input
+                    type="text"
+                    placeholder="Course Title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                />
+                <input
+                    type="text"
+                    placeholder="Course Code (optional)"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                />
+                <textarea
+                    placeholder="Description (optional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                />
+                <textarea
+                    placeholder="Course plan / outline (optional)"
+                    value={plan}
+                    onChange={(e) => setPlan(e.target.value)}
+                    rows={4}
+                    style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                />
+                <select
+                    value={teacherId}
+                    onChange={(e) => setTeacherId(e.target.value)}
+                    required
+                    style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                >
+                    <option value="">Select Teacher</option>
+                    {teachers.map(t => (
+                        <option key={t.id} value={t.id}>
+                            {t.name || t.email} ({t.email})
+                        </option>
+                    ))}
+                </select>
+                <button className="btn" disabled={loading}>
+                    {loading ? "Saving..." : "Assign Course"}
+                </button>
+                {message && <p className="submit-message success">{message}</p>}
+            </form>
+
+            <h4 style={{ marginTop: 24 }}>All Courses</h4>
+            {courses.length === 0 ? (
+                <p>No courses assigned yet.</p>
+            ) : (
+                <div className="events-grid">
+                    {courses.map(c => (
+                        <div key={c.id} className="event-card-modern">
+                            <div className="event-badge teacher">
+                                {c.teacherName || "Teacher"}
+                            </div>
+                            <h4>{c.title}</h4>
+                            <div className="event-meta">
+                                <span>{c.code || "No code"}</span>
+                            </div>
+                            {c.description && <p style={{ marginTop: 6 }}>{c.description}</p>}
                         </div>
                     ))}
                 </div>

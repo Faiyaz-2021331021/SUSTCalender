@@ -3,8 +3,9 @@
     font-family: 'Poppins', sans-serif;
     min-height: 100vh;
     display: flex;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.95)), url("../../sust-saheed-minar.jpg") no-repeat center center / cover;
+    background: linear-gradient(120deg, rgba(14, 32, 64, 0.1), rgba(5, 11, 26, 0.05)), url("../../sust-saheed-minar.jpg") center/cover no-repeat fixed;
     flex-shrink: 0;
+    color: #0f172a;
 }
 
 .sidebar-header h2 {
@@ -12,10 +13,7 @@
     font-weight: 700;
     margin-bottom: 3rem;
     margin-top: 150px;
-    background: linear-gradient(to right, #60a5fa, #a78bfa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #0f172a;
     letter-spacing: 1px;
 }
 
@@ -28,26 +26,27 @@
 .nav-btn {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: #1e293b;
     padding: 12px 16px;
     text-align: left;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     border-radius: 12px;
     transition: all 0.3s ease;
 }
 
 .nav-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: rgba(14, 165, 233, 0.12);
+    color: #0f172a;
     transform: translateX(5px);
 }
 
 .nav-btn.active {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-    color: #60a5fa;
-    border-left: 3px solid #60a5fa;
+    background: linear-gradient(135deg, #0ea5e9, #22c55e);
+    color: #fff;
+    border-left: 0;
+    box-shadow: 0 10px 24px rgba(14, 165, 233, 0.25);
 }
 
 .nav-btn.logout {
@@ -56,8 +55,8 @@
 }
 
 .nav-btn.logout:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #f87171;
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
 }
 
 /* --- Main Content --- */
@@ -65,16 +64,18 @@
     flex-grow: 1;
     padding: 2rem;
     overflow-y: auto;
+    background: rgba(255, 255, 255, 0.82);
 }
 
 .content-glass {
-    background: rgba(30, 41, 59, 0.4);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    border: 1px solid #e2e8f0;
     border-radius: 24px;
     padding: 3rem;
     min-height: 100%;
     animation: fadeIn 0.5s ease-out;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
 }
 
 @keyframes fadeIn {
@@ -93,11 +94,11 @@
 .dashboard-welcome h1 {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
-    color: #fff;
+    color: #0f172a;
 }
 
 .dashboard-welcome p {
-    color: #94a3b8;
+    color: #475569;
     margin-bottom: 3rem;
 }
 
@@ -108,20 +109,20 @@
 }
 
 .stat-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #fff;
+    border: 1px solid #e2e8f0;
     padding: 2rem;
     border-radius: 16px;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .stat-card:hover {
     transform: translateY(-5px);
-    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
 .stat-card h3 {
-    color: #94a3b8;
+    color: #64748b;
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -131,7 +132,7 @@
 .stat-card p {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #fff;
+    color: #0f172a;
     margin: 0;
 }
 
@@ -148,7 +149,7 @@
 .event-step h3 {
     font-size: 1.8rem;
     margin-bottom: 2rem;
-    color: #fff;
+    color: #0f172a;
     text-align: center;
 }
 
@@ -160,11 +161,11 @@
 
 input,
 select {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     padding: 16px;
     border-radius: 12px;
-    color: #fff;
+    color: #0f172a;
     font-size: 1rem;
     transition: all 0.3s ease;
 }
@@ -172,14 +173,14 @@ select {
 input:focus,
 select:focus {
     outline: none;
-    border-color: #60a5fa;
-    background: rgba(15, 23, 42, 0.8);
-    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+    border-color: #0ea5e9;
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
 }
 
 /* --- Buttons --- */
 .btn {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, #0ea5e9, #22c55e);
     color: #fff;
     padding: 16px 32px;
     border: none;
@@ -194,7 +195,7 @@ select:focus {
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
 .btn:disabled {
@@ -203,12 +204,13 @@ select:focus {
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
+    background: #e2e8f0;
+    color: #0f172a;
     margin-bottom: 1rem;
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: #cbd5e1;
     box-shadow: none;
 }
 
@@ -222,12 +224,12 @@ select:focus {
 
 .submit-message.success {
     background: rgba(74, 222, 128, 0.1);
-    color: #4ade80;
+    color: #15803d;
 }
 
 .submit-message.error {
     background: rgba(248, 113, 113, 0.1);
-    color: #f87171;
+    color: #b91c1c;
 }
 
 /* --- New Audience Selection Design --- */
@@ -301,25 +303,26 @@ select:focus {
 }
 
 .event-card-modern {
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #fff;
+    border: 1px solid #e2e8f0;
     border-radius: 16px;
     padding: 1.5rem;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
 .event-card-modern:hover {
     transform: translateY(-5px);
-    background: rgba(30, 41, 59, 0.8);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    background: #fff;
+    border-color: #cbd5e1;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
 
 .event-card-modern h4 {
     font-size: 1.3rem;
-    color: #fff;
+    color: #0f172a;
     margin: 1rem 0 0.5rem 0;
     font-weight: 600;
 }
