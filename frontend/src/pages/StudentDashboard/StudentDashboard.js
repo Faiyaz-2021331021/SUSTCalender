@@ -16,6 +16,7 @@ export default function StudentDashboard() {
     const { currentUser, loading } = useAuth();
 
     const [role, setRole] = useState(null);
+    const [userName, setUserName] = useState("");
     const [roleLoaded, setRoleLoaded] = useState(false);
     const [courses, setCourses] = useState([]);
     const [events, setEvents] = useState([]);
@@ -25,7 +26,14 @@ export default function StudentDashboard() {
         if (!loading && currentUser) {
             const userRef = doc(db, "users", currentUser.uid);
             getDoc(userRef).then(docSnap => {
-                setRole(docSnap.exists() ? docSnap.data().role : null);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setRole(data.role);
+                    // Use updated name from Firestore, fallback to display name or email handle
+                    setUserName(data.name || currentUser.displayName || currentUser.email.split('@')[0]);
+                } else {
+                    setRole(null);
+                }
             }).finally(() => setRoleLoaded(true));
         } else if (!loading && !currentUser) {
             setRoleLoaded(true);
@@ -59,24 +67,8 @@ export default function StudentDashboard() {
         return <div className="loading-state">Loading Dashboard...</div>;
     }
 
-    let ComponentToRender;
-    switch (view) {
-        case "calendar":
-            ComponentToRender = <StudentCalendar events={events} />;
-            break;
-        case "courses":
-            ComponentToRender = <StudentCourses courses={courses} onClose={() => setView("calendar")} />;
-            break;
-        case "events":
-            ComponentToRender = <StudentEvents events={events} onClose={() => setView("calendar")} />;
-            break;
-        case "profile":
-            ComponentToRender = <StudentProfile onClose={() => setView("calendar")} />;
-            break;
-        default:
-            ComponentToRender = <StudentCalendar events={events} />;
-            setView("calendar");
-    }
+    // --- Dynamic Content Rendering (Keep-Alive Strategy) ---
+    // We render all components once and toggle visibility to preserve state and avoid re-fetching.
 
     return (
         <div className="teacher-dashboard">
@@ -85,7 +77,7 @@ export default function StudentDashboard() {
                     <div>
                         <h2 className="teacher-title">Student Dashboard</h2>
                         <div className="teacher-meta-info">
-                            Welcome, {currentUser.email.split('@')[0]} ({role})
+                            Welcome, {userName}
                         </div>
                     </div>
                     <div className="teacher-actions">
@@ -96,7 +88,18 @@ export default function StudentDashboard() {
                     </div>
                 </div>
                 <div className="dashboard-content">
-                    {ComponentToRender}
+                    <div style={{ display: view === "calendar" ? "block" : "none" }}>
+                        <StudentCalendar events={events} />
+                    </div>
+                    <div style={{ display: view === "courses" ? "block" : "none" }}>
+                        <StudentCourses courses={courses} onClose={() => setView("calendar")} />
+                    </div>
+                    <div style={{ display: view === "events" ? "block" : "none" }}>
+                        <StudentEvents events={events} onClose={() => setView("calendar")} />
+                    </div>
+                    <div style={{ display: view === "profile" ? "block" : "none" }}>
+                        <StudentProfile onClose={() => setView("calendar")} />
+                    </div>
                 </div>
             </div>
         </div>

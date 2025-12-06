@@ -4,12 +4,34 @@
     color: white;
 }
 
-.event-highlight {
-    background: #ef4444 !important;
+/* Past Events - Yellow */
+.event-past {
+    background: #facc15 !important;
+    /* Standard Yellow (yellow-400) */
+    color: #422006 !important;
+    /* Dark text for contrast */
+    font-weight: 700;
+    border-radius: 10px;
+}
+
+/* Upcoming Events - Blue */
+.event-upcoming {
+    background: #2563eb !important;
+    /* Primary Blue */
     color: #fff !important;
     font-weight: 700;
     border-radius: 10px;
 }
+
+/* Current Date - Match Active Button */
+.react-calendar__tile--now {
+    background: #d81d4f !important;
+    /* Active Pink/Red */
+    color: #fff !important;
+    border-radius: 10px;
+}
+
+/* --- Copied from TeacherDashboard.css for Layout Consistency --- */
 
 .main-grid-single {
     display: grid;

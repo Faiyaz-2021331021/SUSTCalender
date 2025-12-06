@@ -30,10 +30,19 @@ export default function StudentCalendar() {
 
     // highlighting event dates
     const tileClassName = ({ date }) => {
-        const d = date.toISOString().split("T")[0]; 
+        const d = date.toISOString().split("T")[0];
+        const eventOnDate = events.find(event => event.date === d);
 
-        const hasEvent = events.some(event => event.date === d);
-        return hasEvent ? "event-highlight" : "";
+        // Normalize 'today' to YYYY-MM-D string for comparison
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+
+        if (eventOnDate) {
+            // If date is before today -> Past
+            // If date is today or after -> Upcoming
+            return d < todayStr ? "event-past" : "event-upcoming";
+        }
+        return "";
     };
 
     // Show events on clicking a date

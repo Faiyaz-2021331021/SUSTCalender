@@ -19,7 +19,7 @@ function StudentEvents() {
                     <h1>See Events</h1>
                     <p>Upcoming happenings across campus.</p>
                 </div>
-                <button className="close-btn" onClick={() => navigate("/student-dashboard")}>✕</button>
+
             </div>
             <div className="section-grid">
                 {sampleEvents.map((ev) => (
