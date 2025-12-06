@@ -1,70 +1,85 @@
-# Getting Started with Create React App
+# 📅 University Calendar System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack calendar management platform designed for **students**, **teachers**, and **admins**.  
+The system centralizes academic scheduling, course management, and event organization within a university.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Overview
 
-### `npm start`
+This application provides a unified calendar where each user role has specific functionalities:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 👤 Admin
+- Create **global university events** such as:
+  - Holidays
+  - Meetings
+  - Announcements
+- Create events **for teachers**, **for students**, or **for both**.
+- All admin-created events automatically appear in every affected user’s calendar.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 👨‍🏫 Teacher
+- Create and manage **courses**.
+- Add course-specific events such as:
+  - Assignments  
+  - Quizzes  
+  - Exams  
+  - Class schedules  
+- Access a personalized calendar showing:
+  - All events related to their created courses
+  - Admin-created global events
+  - Upcoming event details
 
-### `npm test`
+### 👨‍🎓 Student
+- Register for any course created by teachers.
+- View:
+  - All events related to their registered courses
+  - All admin-created events
+  - Event details inside the calendar
+- Calendar updates automatically as teachers add new course events.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🛠️ Technology Stack
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### **Frontend** (`/frontend`)
+- **React 19**
+- **React Router 7**
+- **React Calendar**
+- **Firebase Client SDK**
+- Custom UI components for dashboards, course views, and events
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### **Backend** (`/backend`)
+- **Express.js 5**
+- **Firebase Admin SDK**
+- **body-parser**
+- **dotenv**
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 🔐 Authentication & Database
+- **Firebase Authentication**  
+  Used for secure login & role-based access.
+- **Firestore NoSQL Database**  
+  - Collections include:
+    - `users`
+    - `courses`
+    - `events`
+    - `registrations`
+  - Uses Firestore methods such as:
+    - `getFirestore`
+    - `collection`
+    - `addDoc`
 
-### `npm run eject`
+---
+📌 Future Improvements
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Drag-and-drop event scheduling
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Notification system (email or in-app)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Google Calendar export
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Admin analytics dashboard
 
-## Learn More
+Dark/light mode
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Classroom/section management
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
