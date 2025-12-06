@@ -16,6 +16,7 @@ export default function Login() {
   const login = async () => {
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
+    const requestedRole = role.toLowerCase();
 
     if (!trimmedEmail || !trimmedPassword) {
       alert("Please enter both email and password.");
@@ -29,32 +30,25 @@ export default function Login() {
       const userRef = doc(db, "users", uid);
       const snapshot = await getDoc(userRef);
 
-      let targetRole = role; // default to the query param (teacher/admin/student)
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        const storedRole = data.role;
-        if (storedRole && storedRole !== role) {
-          // If the stored role differs from the current context, honor the current context and update Firestore
-          targetRole = role;
-          await setDoc(userRef, { role: targetRole }, { merge: true });
-        } else if (storedRole) {
-          targetRole = storedRole;
-        } else {
-          await setDoc(userRef, { role: targetRole }, { merge: true });
-        }
-      } else {
-        // If no user doc, create a minimal one using the current context
-        await setDoc(
-          userRef,
-          buildProfileDefaults(targetRole, {
-            email: trimmedEmail,
-            name: userCredential.user.displayName || trimmedEmail.split("@")[0]
-          }),
-          { merge: true }
-        );
+      if (!snapshot.exists()) {
+        alert(`No ${role} profile found for this account. Please sign up for a ${role} account first.`);
+        return;
       }
 
-      navigate(`/${targetRole}-dashboard`);
+      const data = snapshot.data();
+      const storedRole = (data.role || "").toLowerCase();
+
+      if (!storedRole) {
+        alert("This account is missing a role. Please contact admin.");
+        return;
+      }
+
+      if (storedRole !== requestedRole) {
+        alert(`This account is a ${storedRole} account. Please log in via the ${storedRole} portal.`);
+        return;
+      }
+
+      navigate(`/${storedRole}-dashboard`);
     } catch (err) {
       alert(err.message);
     }

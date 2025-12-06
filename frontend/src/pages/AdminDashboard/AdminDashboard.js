@@ -128,7 +128,7 @@ export default function AdminDashboard() {
                         <button className={`btn ${view === "calendar" ? "btn-active" : ""}`} onClick={() => setView("calendar")}>View Calendar</button>
                         <button className={`btn ${view === "events" ? "btn-active" : ""}`} onClick={() => setView("events")}>Recent/Upcoming Events</button>
                         <button className="btn" onClick={handleQuickCreateEvent}>Create Event</button>
-                        <button className={`btn ${view === "courses" ? "btn-active" : ""}`} onClick={() => setView("courses")}>Courses</button>
+                        <button className={`btn ${view === "courses" ? "btn-active" : ""}`} onClick={() => setView("courses")}>Create Course</button>
                         <button className={`btn ${view === "profile" ? "btn-active" : ""}`} onClick={() => setView("profile")}>My Profile</button>
                     </div>
                 </div>
@@ -216,50 +216,54 @@ function ManageCourses({ db }) {
         <div>
             <h3>Assign Course to Teacher</h3>
             <form className="event-form" onSubmit={handleCreateCourse}>
-                <input
-                    type="text"
-                    placeholder="Course Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                />
-                <input
-                    type="text"
-                    placeholder="Course Code (optional)"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                />
-                <textarea
-                    placeholder="Description (optional)"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                />
-                <textarea
-                    placeholder="Course plan / outline (optional)"
-                    value={plan}
-                    onChange={(e) => setPlan(e.target.value)}
-                    rows={4}
-                    style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                />
-                <select
-                    value={teacherId}
-                    onChange={(e) => setTeacherId(e.target.value)}
-                    required
-                    style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
-                >
-                    <option value="">Select Teacher</option>
-                    {teachers.map(t => (
-                        <option key={t.id} value={t.id}>
-                            {t.name || t.email} ({t.email})
-                        </option>
-                    ))}
-                </select>
-                <button className="btn" disabled={loading}>
-                    {loading ? "Saving..." : "Assign Course"}
-                </button>
-                {message && <p className="submit-message success">{message}</p>}
+                <div className="course-form-grid">
+                    <input
+                        type="text"
+                        placeholder="Course Title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        required
+                    />
+                    <input
+                        type="text"
+                        placeholder="Course Code (optional)"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                    />
+                    <textarea
+                        placeholder="Description (optional)"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={3}
+                        style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                    />
+                    <textarea
+                        placeholder="Course plan / outline (optional)"
+                        value={plan}
+                        onChange={(e) => setPlan(e.target.value)}
+                        rows={4}
+                        style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0" }}
+                    />
+                </div>
+                <div className="course-actions">
+                    <select
+                        value={teacherId}
+                        onChange={(e) => setTeacherId(e.target.value)}
+                        required
+                        style={{ padding: 10, borderRadius: 8, border: "1px solid #e2e8f0", minWidth: 220 }}
+                    >
+                        <option value="">Select Teacher</option>
+                        {teachers.map(t => (
+                            <option key={t.id} value={t.id}>
+                                {t.name || t.email} ({t.email})
+                            </option>
+                        ))}
+                    </select>
+                    <button className="btn" disabled={loading}>
+                        {loading ? "Saving..." : "Assign Course"}
+                    </button>
+                    {message && <p className="submit-message success" style={{ margin: 0 }}>{message}</p>}
+                </div>
             </form>
 
             <h4 style={{ marginTop: 24 }}>All Courses</h4>
