@@ -79,40 +79,34 @@ export default function StudentCourses({ mode }) {
 
             {showAvailable && (
                 <>
-                    <h3 style={{ marginTop: 10, marginBottom: 10 }}>Available Courses</h3>
+                    <h3 style={{ marginTop: 10, marginBottom: 10 }}>Available Courses (Not Enrolled)</h3>
                     <div className="section-grid">
-                        {courses.length === 0 ? (
+                        {courses.filter(c => !enrolledIds.has(c.id)).length === 0 ? (
                             <div className="section-card">
-                                <p>No courses available yet.</p>
+                                <p>No new courses available.</p>
                             </div>
                         ) : (
-                            courses.map(course => (
-                        <div key={course.id} className="section-card">
-                            <div className="pill">{course.code || "Course"}</div>
-                            <h3>{course.title}</h3>
-                            <small>{course.teacherName || "Assigned Teacher"}</small>
-                            {course.description && <p style={{ marginTop: 6 }}>{course.description}</p>}
+                            courses.filter(c => !enrolledIds.has(c.id)).map(course => (
+                                <div key={course.id} className="section-card">
+                                    <div className="pill">{course.code || "Course"}</div>
+                                    <h3>{course.title}</h3>
+                                    <small>{course.teacherName || "Assigned Teacher"}</small>
+                                    {course.description && <p style={{ marginTop: 6 }}>{course.description}</p>}
                                     {course.plan && <p style={{ marginTop: 4, fontSize: 13, color: "#475569" }}><strong>Plan:</strong> {course.plan}</p>}
                                     {course.syllabus && <p style={{ marginTop: 4, fontSize: 13, color: "#475569" }}><strong>Syllabus:</strong> {course.syllabus}</p>}
-                                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                                    <button
+                                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                                        <button
                                             className="dashboard-home"
-                                            style={{ flex: 1 }}
                                             onClick={() => setSelectedCourse(course)}
                                         >
                                             View details
                                         </button>
                                         <button
                                             className="dashboard-home"
-                                            style={{ flex: 1 }}
                                             onClick={() => handleEnroll(course)}
-                                            disabled={enrollingId === course.id || enrolledIds.has(course.id)}
+                                            disabled={enrollingId === course.id}
                                         >
-                                            {enrolledIds.has(course.id)
-                                                ? "Enrolled"
-                                                : enrollingId === course.id
-                                                ? "Enrolling..."
-                                                : "Enroll"}
+                                            {enrollingId === course.id ? "Enrolling..." : "Enroll"}
                                         </button>
                                     </div>
                                 </div>
@@ -170,8 +164,8 @@ export default function StudentCourses({ mode }) {
                                 {enrolledIds.has(selectedCourse.id)
                                     ? "Enrolled"
                                     : enrollingId === selectedCourse.id
-                                    ? "Enrolling..."
-                                    : "Enroll"}
+                                        ? "Enrolling..."
+                                        : "Enroll"}
                             </button>
                             <button className="dashboard-home" style={{ background: "#e2e8f0", color: "#0f172a" }} onClick={() => setSelectedCourse(null)}>
                                 Close
