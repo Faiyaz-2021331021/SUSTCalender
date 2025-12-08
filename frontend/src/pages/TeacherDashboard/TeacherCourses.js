@@ -21,7 +21,7 @@ export default function TeacherCourses({ courses, onSelectCourse }) {
                                     </div>
                                     <div style={{ marginTop: 8 }}>
                                         <button className="btn btn-secondary btn-small" onClick={() => onSelectCourse?.(c)}>
-                                            Open
+                                            Manage Course
                                         </button>
                                     </div>
                                 </div>

@@ -1,35 +1,46 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../StudentDashboard/StudentDashboard.css";
+import { formatDateLocal } from "../../utils/dateUtils";
 
-const sampleEvents = [
-    { title: "Freshers' Orientation", date: "2025-01-12", time: "10:00 AM", location: "Auditorium", audience: "All" },
-    { title: "Midterm Exam Week", date: "2025-02-04", time: "All day", location: "Campus", audience: "Students" },
-    { title: "Science Fair", date: "2025-03-10", time: "9:00 AM", location: "Main Hall", audience: "All" },
-    { title: "Career Workshop", date: "2025-03-18", time: "2:00 PM", location: "Room 302", audience: "Students" }
-];
-
-function StudentEvents() {
+function StudentEvents({ events, onClose }) {
     const navigate = useNavigate();
+
+    // Filter for upcoming events (today or future)
+    const today = formatDateLocal(new Date());
+    const upcomingEvents = events.filter(ev => {
+        const date = ev.date || ev.startDate;
+        return date >= today;
+    });
 
     return (
         <div className="student-section">
             <div className="section-header">
                 <div style={{ flex: 1 }}>
-                    <h1>See Events</h1>
-                    <p>Upcoming happenings across campus.</p>
+                    <h1>Recent/Upcoming Events</h1>
+                    <p>Happenings across campus.</p>
                 </div>
-
+                <button className="btn btn-secondary" onClick={onClose}>Back to Calendar</button>
             </div>
             <div className="section-grid">
-                {sampleEvents.map((ev) => (
-                    <div key={`${ev.title}-${ev.date}`} className="section-card">
-                        <div className="pill">{ev.date}</div>
-                        <h3>{ev.title}</h3>
-                        <small>{ev.time} • {ev.location}</small>
-                        <small>Audience: {ev.audience}</small>
-                    </div>
-                ))}
+                {upcomingEvents.length === 0 ? (
+                    <p>No upcoming events found.</p>
+                ) : (
+                    upcomingEvents.map((ev) => (
+                        <div key={ev.id} className="section-card">
+                            <div className="pill">{ev.date || ev.startDate}</div>
+                            <h3>{ev.name}</h3>
+                            <small>
+                                {ev.startTime ? `${ev.startTime} - ` : ""}
+                                {ev.endTime ? ev.endTime : "All day"}
+                            </small>
+                            <small style={{ display: "block", marginTop: 4 }}>
+                                Target: {ev.targetAudience}
+                            </small>
+                            {ev.description && <p style={{ marginTop: 8 }}>{ev.description}</p>}
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );

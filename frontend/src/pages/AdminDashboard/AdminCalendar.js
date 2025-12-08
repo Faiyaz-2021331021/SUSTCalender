@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from "react-calendar";
 
+import { formatDateLocal } from "../../utils/dateUtils";
+
 export default function AdminCalendar({ events, onEditEvent }) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedDayEvents, setSelectedDayEvents] = useState([]);
 
     useEffect(() => {
-        const formatted = selectedDate.toISOString().split("T")[0];
+        const formatted = formatDateLocal(selectedDate);
         setSelectedDayEvents(events.filter(ev => {
             const start = ev.startDate || ev.date;
             const end = ev.endDate || ev.date;
@@ -16,9 +18,9 @@ export default function AdminCalendar({ events, onEditEvent }) {
 
     const tileClassName = ({ date, view }) => {
         if (view === "month") {
-            const d = date.toISOString().split("T")[0];
+            const d = formatDateLocal(date);
             const today = new Date();
-            const todayStr = today.toISOString().split("T")[0];
+            const todayStr = formatDateLocal(today);
 
             const eventOnDate = events.find(event => {
                 const start = event.startDate || event.date;

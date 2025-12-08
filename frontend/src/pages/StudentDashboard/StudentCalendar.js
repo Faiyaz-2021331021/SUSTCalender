@@ -1,38 +1,23 @@
 import React, { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import "./StudentCalendar.css";
 
-export default function StudentCalendar() {
-    const [events, setEvents] = useState([]);
+import { formatDateLocal } from "../../utils/dateUtils";
+
+export default function StudentCalendar({ events }) {
     const [selectedDateEvents, setSelectedDateEvents] = useState([]);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const q = query(collection(db, "events"));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-
-            setEvents(data);
-            console.log("Events loaded:", data);
-        });
-
-        return () => unsubscribe();
-    }, []);
+    // No internal fetching - use props
 
     const tileClassName = ({ date }) => {
-        const d = date.toISOString().split("T")[0];
+        const d = formatDateLocal(date);
         const eventOnDate = events.find(event => event.date === d);
 
         const today = new Date();
-        const todayStr = today.toISOString().split("T")[0];
+        const todayStr = formatDateLocal(today);
 
         if (eventOnDate) {
             return d < todayStr ? "event-past" : "event-upcoming";
@@ -41,7 +26,7 @@ export default function StudentCalendar() {
     };
 
     const handleDateClick = (date) => {
-        const d = date.toISOString().split("T")[0];
+        const d = formatDateLocal(date);
         const todaysEvents = events.filter(event => event.date === d);
         setSelectedDateEvents(todaysEvents);
     };

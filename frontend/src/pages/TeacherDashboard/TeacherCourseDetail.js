@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { collection, addDoc, onSnapshot, orderBy, query, serverTimestamp, where, setDoc, doc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, orderBy, query, serverTimestamp, where, setDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 
@@ -73,9 +73,11 @@ export default function TeacherCourseDetail({ course, onBack }) {
       where("courseId", "==", course.id)
     );
     const unsubRegs = onSnapshot(rq, (snap) => {
-      const list = snap.docs.map(d => d.data().studentEmail || d.data().studentId || "");
-      const filtered = list.filter(Boolean);
-      setRegisteredStudents(filtered);
+      const list = snap.docs.map(d => ({
+        uid: d.data().studentId,
+        email: d.data().studentEmail
+      }));
+      setRegisteredStudents(list);
     });
 
     const eq = query(
@@ -95,6 +97,32 @@ export default function TeacherCourseDetail({ course, onBack }) {
       unsubEvents();
     };
   }, [course]);
+
+  // Fetch student profiles
+  const [studentProfiles, setStudentProfiles] = useState({});
+
+  useEffect(() => {
+    if (registeredStudents.length === 0) return;
+
+    const fetchProfiles = async () => {
+      const profiles = {};
+      for (const student of registeredStudents) {
+        if (student.uid) {
+          try {
+            const userDoc = await getDoc(doc(db, "users", student.uid));
+            if (userDoc.exists()) {
+              profiles[student.email] = userDoc.data();
+            }
+          } catch (err) {
+            console.error("Error fetching profile for", student.email, err);
+          }
+        }
+      }
+      setStudentProfiles(profiles);
+    };
+
+    fetchProfiles();
+  }, [registeredStudents]);
 
   const postMessage = async (e) => {
     e.preventDefault();
@@ -123,12 +151,27 @@ export default function TeacherCourseDetail({ course, onBack }) {
   const addMark = async (e) => {
     e.preventDefault();
     if (!markStudent.trim()) return;
-    await addDoc(collection(db, "courses", course.id, "marks"), {
-      student: markStudent.trim(),
-      termTest: markTerm || "",
-      finalExam: markFinal || "",
-      createdAt: serverTimestamp()
-    });
+
+    // Check if mark entry already exists for this student
+    const existingMark = marks.find(m => m.student === markStudent.trim());
+
+    if (existingMark) {
+      // Update existing
+      const updates = {};
+      if (markTerm) updates.termTest = markTerm;
+      if (markFinal) updates.finalExam = markFinal;
+
+      await setDoc(doc(db, "courses", course.id, "marks", existingMark.id), updates, { merge: true });
+    } else {
+      // Create new
+      await addDoc(collection(db, "courses", course.id, "marks"), {
+        student: markStudent.trim(),
+        termTest: markTerm || "",
+        finalExam: markFinal || "",
+        createdAt: serverTimestamp()
+      });
+    }
+
     setMarkStudent("");
     setMarkTerm("");
     setMarkFinal("");
@@ -155,7 +198,8 @@ export default function TeacherCourseDetail({ course, onBack }) {
   };
 
   const displayRows = () => {
-    return registeredStudents.map(email => {
+    return registeredStudents.map(s => {
+      const email = s.email;
       const found = attRows.find(r => r.student === email);
       return found || { student: email, status: "present" };
     });
@@ -192,6 +236,14 @@ export default function TeacherCourseDetail({ course, onBack }) {
       setPlanSaving(false);
       setTimeout(() => setPlanMsg(""), 2500);
     }
+  };
+
+  const getStudentLabel = (email) => {
+    const profile = studentProfiles[email];
+    if (profile) {
+      return profile.studentId || profile.name || email;
+    }
+    return email;
   };
 
   if (!course) return null;
@@ -265,68 +317,28 @@ export default function TeacherCourseDetail({ course, onBack }) {
         </div>
       </div>
 
-      <div className="section-card">
-        <h3>Attendance</h3>
-        <form onSubmit={addAttendanceSession} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <input type="date" className="input-field" value={attDate} onChange={(e) => setAttDate(e.target.value)} />
-          <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 8, maxHeight: 260, overflowY: "auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6, marginBottom: 6, fontWeight: 600, color: "#475569" }}>
-              <span>Student email</span><span>Status</span>
-            </div>
-            {registeredStudents.length === 0 && <p style={{ padding: 6 }}>No enrolled students found.</p>}
-            {displayRows().map((row, idx) => (
-              <div key={row.student + idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6, marginBottom: 6 }}>
-                <input type="text" className="input-field" value={row.student} readOnly />
-                <select
-                  className="input-field"
-                  value={row.status}
-                  onChange={(e) => updateRow(row.student, e.target.value)}
-                >
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
-                </select>
-              </div>
-            ))}
-          </div>
-          <button className="btn" type="submit">Save attendance</button>
-        </form>
-        <div style={{ marginTop: 10, maxHeight: 200, overflowY: "auto" }}>
-          {attendanceSessions.length === 0 ? <p>No attendance yet.</p> : attendanceSessions.map(a => (
-            <div key={a.id} style={{ padding: 8, borderBottom: "1px solid #e2e8f0" }}>
-              <strong>{a.date || "No date"}</strong>
-              {a.entries && a.entries.length > 0 && (
-                <ul style={{ margin: 6, paddingLeft: 16 }}>
-                  {a.entries.map((entry, idx) => (
-                    <li key={idx}>{entry.student} ({entry.status || "present"})</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div className="section-card">
         <h3>Marks</h3>
         <form onSubmit={addMark} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <select
-              className="input-field"
-              value={markStudent}
-              onChange={(e) => setMarkStudent(e.target.value)}
-            >
-              <option value="">Select student</option>
-              {registeredStudents.map(email => (
-                <option key={email} value={email}>{email}</option>
-              ))}
-            </select>
-            <input type="text" className="input-field" placeholder="Term Test mark" value={markTerm} onChange={(e) => setMarkTerm(e.target.value)} />
-            <input type="text" className="input-field" placeholder="Final Exam mark" value={markFinal} onChange={(e) => setMarkFinal(e.target.value)} />
-            <button className="btn" type="submit">Save marks</button>
+          <select
+            className="input-field"
+            value={markStudent}
+            onChange={(e) => setMarkStudent(e.target.value)}
+          >
+            <option value="">Select student</option>
+            {registeredStudents.map(s => (
+              <option key={s.email} value={s.email}>{getStudentLabel(s.email)}</option>
+            ))}
+          </select>
+          <input type="text" className="input-field" placeholder="Term Test mark" value={markTerm} onChange={(e) => setMarkTerm(e.target.value)} />
+          <input type="text" className="input-field" placeholder="Final Exam mark" value={markFinal} onChange={(e) => setMarkFinal(e.target.value)} />
+          <button className="btn" type="submit">Save marks</button>
         </form>
         <div style={{ marginTop: 10, maxHeight: 200, overflowY: "auto" }}>
           {marks.length === 0 ? <p>No marks yet.</p> : marks.map(m => (
             <div key={m.id} style={{ padding: 8, borderBottom: "1px solid #e2e8f0" }}>
-              <strong>{m.student}</strong> — Term: {m.termTest || "-"}, Final: {m.finalExam || "-"}
+              <strong>{getStudentLabel(m.student)}</strong> — Term: {m.termTest || "-"}, Final: {m.finalExam || "-"}
             </div>
           ))}
         </div>

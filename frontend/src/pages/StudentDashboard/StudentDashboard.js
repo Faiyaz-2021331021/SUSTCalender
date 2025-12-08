@@ -28,20 +28,34 @@ export default function StudentDashboard() {
             getDoc(userRef).then(docSnap => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    console.log("User data fetched:", data);
                     setRole(data.role);
                     setUserName(data.name || currentUser.displayName || currentUser.email.split('@')[0]);
                 } else {
+                    console.log("No user doc found for uid:", currentUser.uid);
                     setRole(null);
                 }
-            }).finally(() => setRoleLoaded(true));
+            })
+                .catch(err => console.error("Error fetching user role:", err))
+                .finally(() => setRoleLoaded(true));
         } else if (!loading && !currentUser) {
             setRoleLoaded(true);
         }
     }, [currentUser, loading]);
 
     useEffect(() => {
-        if (!loading && roleLoaded && (!currentUser || role !== "student")) {
-            if (roleLoaded) navigate("/");
+        console.log("Auth Check:", { loading, roleLoaded, currentUser: currentUser?.email, role });
+        if (!loading && roleLoaded) {
+            if (!currentUser) {
+                console.log("Redirecting: No current user");
+                navigate("/");
+                return;
+            }
+            // Case-insensitive check
+            if (role && role.toLowerCase() !== "student") {
+                console.log("Redirecting: Role mismatch. Expected student, got:", role);
+                navigate("/");
+            }
         }
     }, [currentUser, role, roleLoaded, loading, navigate]);
 
@@ -61,7 +75,7 @@ export default function StudentDashboard() {
         const unsub = onSnapshot(q, snap => {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             const filtered = list.filter(ev =>
-                ["student", "both"].includes(ev.targetAudience) ||
+                ["student", "students", "both"].includes(ev.targetAudience) ||
                 (ev.targetAudience === "course" && ev.courseId && regCourseIds.has(ev.courseId))
             );
             setEvents(filtered.sort((a, b) => (a.date || "").localeCompare(b.date || "")));

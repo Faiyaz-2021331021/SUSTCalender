@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from "react-calendar";
+import { formatDateLocal } from "../../utils/dateUtils";
 
 export default function TeacherCalendar({ events, onEditEvent }) {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedDayEvents, setSelectedDayEvents] = useState([]);
 
     useEffect(() => {
-        const formatted = selectedDate.toISOString().split("T")[0];
+        const formatted = formatDateLocal(selectedDate);
         setSelectedDayEvents(events.filter(ev => ev.date === formatted));
     }, [selectedDate, events]);
 
     const tileClassName = ({ date, view }) => {
         if (view === "month") {
-            const d = date.toISOString().split("T")[0];
+            const d = formatDateLocal(date);
             const eventOnDate = events.find(event => event.date === d);
 
             const today = new Date();
-            const todayStr = today.toISOString().split("T")[0];
+            const todayStr = formatDateLocal(today);
 
             if (eventOnDate) {
                 return d < todayStr ? "event-past" : "event-upcoming";
